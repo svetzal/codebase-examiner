@@ -1,0 +1,4 @@
+.idea
+.vscode
+**/.claude/settings.local.json
+/src/codebase_examiner.egg-info/

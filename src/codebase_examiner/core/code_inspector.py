@@ -1,0 +1,380 @@
+"""Module for inspecting Python code and extracting documentation."""
+
+import ast
+import inspect
+import importlib.util
+import re
+import sys
+from pathlib import Path
+from typing import Dict, List, Any, Optional, Tuple, Set, Union
+
+from pydantic import BaseModel
+
+
+class FunctionDocumentation(BaseModel):
+    """Model for function documentation."""
+    name: str
+    docstring: Optional[str] = None
+    signature: str
+    parameters: Dict[str, Dict[str, Any]] = {}
+    return_type: Optional[str] = None
+    return_description: Optional[str] = None
+    module_path: str
+
+
+class ClassDocumentation(BaseModel):
+    """Model for class documentation."""
+    name: str
+    docstring: Optional[str] = None
+    methods: List[FunctionDocumentation] = []
+    module_path: str
+
+
+class ModuleDocumentation(BaseModel):
+    """Model for module documentation."""
+    name: str
+    docstring: Optional[str] = None
+    file_path: str
+    functions: List[FunctionDocumentation] = []
+    classes: List[ClassDocumentation] = []
+
+
+def parse_google_docstring(docstring: Optional[str]) -> Dict[str, Dict[str, str]]:
+    """Parse a Google-style docstring to extract parameter and return descriptions.
+
+    Args:
+        docstring (Optional[str]): The docstring to parse.
+
+    Returns:
+        Dict[str, Dict[str, str]]: A dictionary with 'params' and 'returns' keys.
+    """
+    if not docstring:
+        return {"params": {}, "returns": None}
+
+    # Initialize results
+    result = {"params": {}, "returns": None}
+
+    # Find the Args section
+    args_match = re.search(r'Args:(.*?)(?:Returns:|Raises:|$)', docstring, re.DOTALL)
+    if args_match:
+        args_section = args_match.group(1).strip()
+        # Parse each parameter
+        param_matches = re.finditer(r'(\w+)\s+\(([^)]+)\):\s+(.*?)(?=\w+\s+\([^)]+\):|$)', args_section, re.DOTALL)
+        for match in param_matches:
+            param_name = match.group(1)
+            param_type = match.group(2).strip()
+            param_desc = match.group(3).strip()
+            result["params"][param_name] = {"type": param_type, "description": param_desc}
+
+    # Find the Returns section
+    returns_match = re.search(r'Returns:(.*?)(?:Raises:|$)', docstring, re.DOTALL)
+    if returns_match:
+        returns_section = returns_match.group(1).strip()
+        # Parse return type and description
+        return_match = re.search(r'([\w\[\],\s]+):\s+(.*)', returns_section, re.DOTALL)
+        if return_match:
+            return_type = return_match.group(1).strip()
+            return_desc = return_match.group(2).strip()
+            result["returns"] = {"type": return_type, "description": return_desc}
+
+    return result
+
+
+def get_signature_string(obj: Any) -> str:
+    """Get the signature of a callable object as a string.
+
+    Args:
+        obj (Any): The callable object.
+
+    Returns:
+        str: The signature as a string.
+    """
+    try:
+        sig = inspect.signature(obj)
+        return str(sig)
+    except (ValueError, TypeError):
+        return "(unknown signature)"
+
+
+def inspect_function(func: Any, module_path: str) -> FunctionDocumentation:
+    """Inspect a function and extract its documentation.
+
+    Args:
+        func (Any): The function to inspect.
+        module_path (str): The path to the module containing the function.
+
+    Returns:
+        FunctionDocumentation: The extracted documentation.
+    """
+    docstring = inspect.getdoc(func)
+    parsed_doc = parse_google_docstring(docstring)
+    
+    signature = get_signature_string(func)
+    
+    # Extract parameter information
+    parameters = {}
+    sig = inspect.signature(func)
+    for name, param in sig.parameters.items():
+        parameters[name] = {
+            "kind": str(param.kind),
+            "default": None if param.default is inspect.Parameter.empty else str(param.default),
+            "annotation": str(param.annotation) if param.annotation is not inspect.Parameter.empty else None,
+            "description": parsed_doc["params"].get(name, {}).get("description", None)
+        }
+    
+    # Extract return type
+    return_annotation = sig.return_annotation
+    return_type = None if return_annotation is inspect.Parameter.empty else str(return_annotation)
+    
+    return FunctionDocumentation(
+        name=func.__name__,
+        docstring=docstring,
+        signature=signature,
+        parameters=parameters,
+        return_type=return_type,
+        return_description=parsed_doc.get("returns", {}).get("description", None),
+        module_path=module_path
+    )
+
+
+def inspect_class(cls: Any, module_path: str) -> ClassDocumentation:
+    """Inspect a class and extract its documentation.
+
+    Args:
+        cls (Any): The class to inspect.
+        module_path (str): The path to the module containing the class.
+
+    Returns:
+        ClassDocumentation: The extracted documentation.
+    """
+    docstring = inspect.getdoc(cls)
+    methods = []
+    
+    # Get all methods
+    for name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
+        # Skip private methods
+        if not name.startswith('_') or name == '__init__':
+            methods.append(inspect_function(method, module_path))
+    
+    return ClassDocumentation(
+        name=cls.__name__,
+        docstring=docstring,
+        methods=methods,
+        module_path=module_path
+    )
+
+
+def load_module_from_file(file_path: Path) -> Tuple[Any, str]:
+    """Load a Python module from a file path.
+
+    Args:
+        file_path (Path): The path to the Python file.
+
+    Returns:
+        Tuple[Any, str]: The loaded module and its name.
+    """
+    module_name = file_path.stem
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load module from {file_path}")
+    
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    
+    return module, module_name
+
+
+def inspect_module(file_path: Path) -> ModuleDocumentation:
+    """Inspect a Python module and extract its documentation.
+
+    Args:
+        file_path (Path): The path to the Python file.
+
+    Returns:
+        ModuleDocumentation: The extracted documentation.
+    """
+    try:
+        module, module_name = load_module_from_file(file_path)
+        
+        docstring = module.__doc__
+        functions = []
+        classes = []
+        
+        # Get all functions
+        for name, func in inspect.getmembers(module, predicate=inspect.isfunction):
+            # Skip imported functions
+            if func.__module__ == module_name and not name.startswith('_'):
+                functions.append(inspect_function(func, str(file_path)))
+        
+        # Get all classes
+        for name, cls in inspect.getmembers(module, predicate=inspect.isclass):
+            # Skip imported classes
+            if cls.__module__ == module_name and not name.startswith('_'):
+                classes.append(inspect_class(cls, str(file_path)))
+        
+        return ModuleDocumentation(
+            name=module_name,
+            docstring=docstring,
+            file_path=str(file_path),
+            functions=functions,
+            classes=classes
+        )
+    except Exception as e:
+        # Fall back to AST parsing if module loading fails
+        return parse_module_with_ast(file_path)
+
+
+def parse_module_with_ast(file_path: Path) -> ModuleDocumentation:
+    """Parse a Python module using AST when import is not possible.
+
+    Args:
+        file_path (Path): The path to the Python file.
+
+    Returns:
+        ModuleDocumentation: The extracted documentation.
+    """
+    with open(file_path, 'r', encoding='utf-8') as f:
+        code = f.read()
+    
+    try:
+        tree = ast.parse(code)
+        
+        module_docstring = ast.get_docstring(tree)
+        functions = []
+        classes = []
+        
+        for node in tree.body:
+            if isinstance(node, ast.FunctionDef):
+                if not node.name.startswith('_'):
+                    functions.append(extract_function_info_from_ast(node, str(file_path)))
+            elif isinstance(node, ast.ClassDef):
+                if not node.name.startswith('_'):
+                    classes.append(extract_class_info_from_ast(node, str(file_path)))
+        
+        return ModuleDocumentation(
+            name=file_path.stem,
+            docstring=module_docstring,
+            file_path=str(file_path),
+            functions=functions,
+            classes=classes
+        )
+    except Exception as e:
+        # Return an empty module documentation if parsing fails
+        return ModuleDocumentation(
+            name=file_path.stem,
+            docstring=None,
+            file_path=str(file_path),
+            functions=[],
+            classes=[]
+        )
+
+
+def extract_function_info_from_ast(node: ast.FunctionDef, module_path: str) -> FunctionDocumentation:
+    """Extract function information from an AST node.
+
+    Args:
+        node (ast.FunctionDef): The function definition node.
+        module_path (str): The path to the module containing the function.
+
+    Returns:
+        FunctionDocumentation: The extracted function documentation.
+    """
+    docstring = ast.get_docstring(node)
+    parsed_doc = parse_google_docstring(docstring)
+    
+    parameters = {}
+    for arg in node.args.args:
+        param_name = arg.arg
+        annotation = arg.annotation.id if hasattr(arg, 'annotation') and arg.annotation is not None else None
+        
+        parameters[param_name] = {
+            "kind": "POSITIONAL_OR_KEYWORD",
+            "default": None,
+            "annotation": annotation,
+            "description": parsed_doc["params"].get(param_name, {}).get("description", None)
+        }
+    
+    # Extract return type
+    return_type = None
+    if node.returns:
+        if isinstance(node.returns, ast.Name):
+            return_type = node.returns.id
+        elif isinstance(node.returns, ast.Attribute):
+            return_type = f"{node.returns.value.id}.{node.returns.attr}"
+    
+    # Build signature string
+    args_str = ", ".join([
+        param_name + (f": {params.get('annotation')}" if params.get('annotation') else "")
+        for param_name, params in parameters.items()
+    ])
+    sig_str = f"({args_str})"
+    if return_type:
+        sig_str += f" -> {return_type}"
+    
+    return FunctionDocumentation(
+        name=node.name,
+        docstring=docstring,
+        signature=sig_str,
+        parameters=parameters,
+        return_type=return_type,
+        return_description=parsed_doc.get("returns", {}).get("description", None),
+        module_path=module_path
+    )
+
+
+def extract_class_info_from_ast(node: ast.ClassDef, module_path: str) -> ClassDocumentation:
+    """Extract class information from an AST node.
+
+    Args:
+        node (ast.ClassDef): The class definition node.
+        module_path (str): The path to the module containing the class.
+
+    Returns:
+        ClassDocumentation: The extracted class documentation.
+    """
+    docstring = ast.get_docstring(node)
+    methods = []
+    
+    for item in node.body:
+        if isinstance(item, ast.FunctionDef):
+            if not item.name.startswith('_') or item.name == '__init__':
+                methods.append(extract_function_info_from_ast(item, module_path))
+    
+    return ClassDocumentation(
+        name=node.name,
+        docstring=docstring,
+        methods=methods,
+        module_path=module_path
+    )
+
+
+def inspect_codebase(
+    directory: str = ".", 
+    exclude_dirs: Set[str] = None,
+    exclude_dotfiles: bool = True
+) -> List[ModuleDocumentation]:
+    """Inspect a Python codebase and extract documentation.
+
+    Args:
+        directory (str): The root directory of the codebase. Defaults to current directory.
+        exclude_dirs (Set[str], optional): Set of directory names to exclude from the search.
+        exclude_dotfiles (bool): Whether to exclude all files and directories starting with a dot.
+            Defaults to True.
+
+    Returns:
+        List[ModuleDocumentation]: Documentation for all modules in the codebase.
+    """
+    from codebase_examiner.core.file_finder import find_python_files
+    
+    python_files = find_python_files(directory, exclude_dirs, exclude_dotfiles)
+    modules = []
+    
+    for file_path in python_files:
+        try:
+            module_doc = inspect_module(file_path)
+            modules.append(module_doc)
+        except Exception as e:
+            print(f"Error inspecting {file_path}: {e}")
+    
+    return modules
