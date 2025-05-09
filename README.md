@@ -5,6 +5,8 @@ A command-line tool that examines Python codebases and generates comprehensive d
 ## Features
 
 - Find all Python files in a project directory tree
+- Automatically detect and respect pytest.ini configuration for test file organization
+- Support different test layout strategies (separate tests directory or tests alongside implementation)
 - Extract documentation from modules, classes, and functions
 - Parse Google-style docstrings for parameter and return value documentation
 - Generate documentation in Markdown or JSON format

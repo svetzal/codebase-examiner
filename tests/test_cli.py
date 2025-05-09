@@ -43,7 +43,7 @@ def test_examine_command(runner, mock_inspect_codebase):
     assert "Finding and analyzing Python files..." in result.stdout
     assert "Generating markdown documentation..." in result.stdout
     assert "# Codebase Documentation" in result.stdout
-    
+
     # Check that the function was called with the right arguments
     mock_inspect_codebase.assert_called_once_with(".", {".venv"})
 
@@ -54,12 +54,12 @@ def test_examine_command_with_format_option(runner, mock_inspect_codebase):
     result = runner.invoke(app, ["examine", "--format", "json"])
     assert result.exit_code == 0
     assert "Generating json documentation..." in result.stdout
-    
+
     # Verify that JSON output can be parsed
     output = result.stdout
-    start_idx = output.find("[{")
-    end_idx = output.rfind("}]") + 2
-    json_output = output[start_idx:end_idx]
+    start_idx = output.find("JSON_OUTPUT_START") + len("JSON_OUTPUT_START")
+    end_idx = output.find("JSON_OUTPUT_END")
+    json_output = output[start_idx:end_idx].strip()
     json_data = json.loads(json_output)
     assert isinstance(json_data, list)
     assert len(json_data) == 1
@@ -70,12 +70,12 @@ def test_examine_command_with_output_file(runner, mock_inspect_codebase):
     """Test the examine command with output file."""
     with tempfile.TemporaryDirectory() as tmpdirname:
         output_file = Path(tmpdirname) / "output.md"
-        
+
         # Run the command with output file
         result = runner.invoke(app, ["examine", "--output", str(output_file)])
         assert result.exit_code == 0
         assert f"Documentation written to {output_file}" in result.stdout
-        
+
         # Verify the file was created
         assert output_file.exists()
         content = output_file.read_text()
