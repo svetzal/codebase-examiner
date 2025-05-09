@@ -107,7 +107,6 @@ Response:
 }
 ```
 
-The legacy `/examine` endpoint is still supported for backward compatibility.
 
 ### STDIO Server
 
@@ -158,7 +157,6 @@ Legacy command-based format is still supported for backward compatibility:
 When running as an HTTP server:
 
 - `/jsonrpc` - JSON-RPC 2.0 endpoint for all operations
-- `/examine` - Legacy endpoint to examine a codebase and return documentation (for backward compatibility)
 
 ## Development
 

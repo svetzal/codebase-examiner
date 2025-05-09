@@ -44,7 +44,7 @@ class TestMcpServer(unittest.TestCase):
                 "protocolVersion": "2025-03-26"
             }
         }
-        
+
         with patch.object(rpc_handler, 'handle_request', return_value=mock_response):
             # Send the request
             response = self.client.post(
@@ -85,7 +85,7 @@ class TestMcpServer(unittest.TestCase):
                 ]
             }
         }
-        
+
         with patch.object(rpc_handler, 'handle_request', return_value=mock_response):
             # Send the request
             response = self.client.post(
@@ -129,7 +129,7 @@ class TestMcpServer(unittest.TestCase):
                 "modules_found": 5
             }
         }
-        
+
         with patch.object(rpc_handler, 'handle_request', return_value=mock_response):
             # Send the request
             response = self.client.post(
@@ -149,39 +149,6 @@ class TestMcpServer(unittest.TestCase):
         self.assertIn("documentation", response_json["result"])
         self.assertIn("modules_found", response_json["result"])
 
-    def test_legacy_examine_endpoint(self):
-        """Test the legacy /examine endpoint."""
-        # Prepare the examine request
-        examine_request = {
-            "directory": ".",
-            "format": "markdown",
-            "exclude_dirs": [".venv", ".git"],
-            "include_dotfiles": False
-        }
-
-        # Mock the RPC handler to avoid actual codebase examination
-        mock_response = {
-            "jsonrpc": "2.0",
-            "id": "legacy",
-            "result": {
-                "status": "success",
-                "documentation": "# Test Documentation",
-                "modules_found": 5
-            }
-        }
-        
-        with patch.object(rpc_handler, 'handle_request', return_value=mock_response):
-            # Send the request
-            response = self.client.post(
-                "/examine",
-                json=examine_request
-            )
-
-        # Verify the response
-        self.assertEqual(response.status_code, 200)
-        response_json = response.json()
-        self.assertEqual(response_json["documentation"], "# Test Documentation")
-        self.assertEqual(response_json["modules_found"], 5)
 
     def test_jsonrpc_invalid_json(self):
         """Test handling of invalid JSON in JSON-RPC request."""

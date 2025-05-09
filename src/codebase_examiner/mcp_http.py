@@ -4,7 +4,7 @@ import json
 from typing import Dict, Any, Optional
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi import FastAPI, Request, Response
 from pydantic import BaseModel, Field
 
 from codebase_examiner.rpc import JsonRpcHandler
@@ -16,21 +16,6 @@ class JsonRpcRequest(BaseModel):
     id: Optional[Any] = Field(None, description="Request ID")
     method: str = Field(..., description="Method name")
     params: Optional[Dict[str, Any]] = Field(None, description="Method parameters")
-
-
-# Legacy models for backward compatibility
-class ExamineRequest(BaseModel):
-    """Request model for examining a codebase (legacy)."""
-    directory: str = Field(default=".", description="Directory to examine")
-    exclude_dirs: Optional[list[str]] = Field(default=[".venv", ".git", "__pycache__", "tests", "build", "dist"], description="Directories to exclude")
-    format: str = Field(default="markdown", description="Output format (markdown or json)")
-    include_dotfiles: bool = Field(default=False, description="Include files and directories starting with a dot")
-
-
-class ExamineResponse(BaseModel):
-    """Response model for examine endpoint (legacy)."""
-    documentation: str
-    modules_found: int
 
 
 app = FastAPI(title="Codebase Examiner MCP", description="MCP server for examining Python codebases")
@@ -89,52 +74,6 @@ async def handle_jsonrpc(request: Request) -> Response:
             media_type="application/json",
             status_code=500
         )
-
-
-@app.post("/examine", response_model=ExamineResponse)
-async def examine_codebase(request: ExamineRequest):
-    """Examine a Python codebase and generate documentation (legacy endpoint).
-
-    Args:
-        request (ExamineRequest): The examination request parameters
-
-    Returns:
-        ExamineResponse: The generated documentation
-    """
-    try:
-        # Convert to JSON-RPC format and use the RPC handler
-        jsonrpc_request = {
-            "jsonrpc": "2.0",
-            "id": "legacy",
-            "method": "tools/call",
-            "params": {
-                "name": "examine",
-                "arguments": {
-                    "directory": request.directory,
-                    "exclude_dirs": request.exclude_dirs,
-                    "format": request.format,
-                    "include_dotfiles": request.include_dotfiles
-                }
-            }
-        }
-
-        # Handle the JSON-RPC request
-        response = rpc_handler.handle_request(jsonrpc_request)
-
-        # Check for errors
-        if "error" in response:
-            raise Exception(response["error"]["message"])
-
-        # Extract the result
-        result = response["result"]
-
-        # Return the response
-        return ExamineResponse(
-            documentation=result["documentation"],
-            modules_found=result["modules_found"]
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 def start_server(port: int):
