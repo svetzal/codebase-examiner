@@ -72,22 +72,42 @@ Start the HTTP server:
 codebase-examiner serve --port 8080
 ```
 
-Send a POST request to `/examine`:
+Send a JSON-RPC request to `/jsonrpc`:
 
 ```bash
-curl -X POST http://localhost:8080/examine \
+curl -X POST http://localhost:8080/jsonrpc \
      -H "Content-Type: application/json" \
-     -d '{"directory":".", "exclude_dirs":[".venv"], "format":"markdown", "include_dotfiles":false}'
+     -d '{
+       "jsonrpc": "2.0",
+       "id": "1",
+       "method": "tools/call",
+       "params": {
+         "name": "examine",
+         "arguments": {
+           "directory": ".",
+           "exclude_dirs": [".venv"],
+           "format": "markdown",
+           "include_dotfiles": false
+         }
+       }
+     }'
 ```
 
 Response:
 
 ```json
 {
-  "documentation": "# Codebase Documentation...",
-  "modules_found": 5
+  "jsonrpc": "2.0",
+  "id": "1",
+  "result": {
+    "status": "success",
+    "documentation": "# Codebase Documentation...",
+    "modules_found": 5
+  }
 }
 ```
+
+The legacy `/examine` endpoint is still supported for backward compatibility.
 
 ### STDIO Server
 
@@ -97,7 +117,33 @@ Start the STDIO server:
 codebase-examiner-stdio
 ```
 
-Send JSON commands to stdin and read JSON responses on stdout. For example:
+Send JSON-RPC commands to stdin and read JSON-RPC responses on stdout. For example:
+
+```json
+{ "jsonrpc": "2.0", "id": "1", "method": "tools/call", "params": { "name": "examine", "arguments": { "directory": ".", "exclude_dirs": [".venv"], "format": "markdown", "include_dotfiles": false } } }
+```
+
+```json
+{ "jsonrpc": "2.0", "id": "1", "result": { "status": "success", "documentation": "# Codebase Documentation...", "modules_found": 5 } }
+```
+
+```json
+{ "jsonrpc": "2.0", "id": "2", "method": "initialize", "params": {} }
+```
+
+```json
+{ "jsonrpc": "2.0", "id": "2", "result": { "serverInfo": { "name": "Codebase Examiner", "version": "1.0.0" }, "capabilities": { "examineProvider": true }, "protocolVersion": null } }
+```
+
+```json
+{ "jsonrpc": "2.0", "id": "3", "method": "exit", "params": {} }
+```
+
+```json
+{ "jsonrpc": "2.0", "id": "3", "result": null }
+```
+
+Legacy command-based format is still supported for backward compatibility:
 
 ```json
 { "command": "examine", "directory": ".", "exclude_dirs": [".venv"], "format": "markdown", "include_dotfiles": false }
@@ -107,23 +153,12 @@ Send JSON commands to stdin and read JSON responses on stdout. For example:
 { "status": "success", "documentation": "# Codebase Documentation...", "modules_found": 5 }
 ```
 
-```json
-{ "command": "ping" }
-```
-
-```json
-{ "status": "success", "message": "pong" }
-```
-
-```json
-{ "command": "exit" }
-```
-
 ## API Endpoints
 
 When running as an HTTP server:
 
-- `/examine` - Examine a codebase and return documentation
+- `/jsonrpc` - JSON-RPC 2.0 endpoint for all operations
+- `/examine` - Legacy endpoint to examine a codebase and return documentation (for backward compatibility)
 
 ## Development
 
