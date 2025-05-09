@@ -1,24 +1,18 @@
 """STDIO-based MCP server implementation for Codebase Examiner."""
 
 import json
-import os
 import sys
-import threading
-from importlib.metadata import version
-from pathlib import Path
-from typing import Dict, Any, List, Optional, Set, Union
+from typing import Dict, Any
 
-
-
-from codebase_examiner.core.code_inspector import inspect_codebase
-from codebase_examiner.core.doc_generator import generate_documentation
+from codebase_examiner.rpc import JsonRpcHandler
 
 
 class StdioMcpServer:
-    """An MCP server that communicates over standard input/output."""
+    """An MCP server that communicates over standard input/output using JSON-RPC."""
 
     def __init__(self):
         """Initialize the STDIO MCP server."""
+        self.rpc_handler = JsonRpcHandler()
         self.should_exit = False
 
     def _read_request(self) -> Dict[str, Any]:
@@ -46,45 +40,6 @@ class StdioMcpServer:
         sys.stdout.write(json.dumps(response) + "\n")
         sys.stdout.flush()
 
-    def _handle_examine_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle a request to examine a codebase.
-
-        Args:
-            request (Dict[str, Any]): The examination request
-
-        Returns:
-            Dict[str, Any]: The response with generated documentation
-        """
-        try:
-            # Extract parameters from request
-            directory = request.get("directory", ".")
-            exclude_dirs = set(request.get("exclude_dirs", [".venv", ".git", "__pycache__", "tests", "build", "dist"]))
-            format_type = request.get("format", "markdown")
-            include_dotfiles = request.get("include_dotfiles", False)
-
-            # Convert directory to absolute path if it's relative
-            if not os.path.isabs(directory):
-                directory = str(Path(directory).resolve())
-
-            # Inspect the codebase
-            modules = inspect_codebase(directory, exclude_dirs, not include_dotfiles)
-
-            # Generate documentation
-            documentation = generate_documentation(modules, format_type)
-
-            return {
-                "status": "success",
-                "documentation": documentation,
-                "modules_found": len(modules)
-            }
-        except Exception as e:
-            return {
-                "status": "error",
-                "message": str(e)
-            }
-
-
-
     def _handle_ping(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """Handle a ping request.
 
@@ -98,59 +53,6 @@ class StdioMcpServer:
             "status": "success",
             "message": "pong"
         }
-
-    def _handle_jsonrpc_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle a JSON-RPC 2.0 request.
-
-        Args:
-            request (Dict[str, Any]): The JSON-RPC request
-
-        Returns:
-            Dict[str, Any]: The JSON-RPC response
-        """
-        method = request.get("method")
-        request_id = request.get("id")
-        params = request.get("params", {})
-
-        # Basic response structure
-        response = {
-            "jsonrpc": "2.0",
-            "id": request_id
-        }
-
-        if method == "initialize":
-            # Handle initialize method
-            protocol_version = params.get("protocolVersion")
-            capabilities = params.get("capabilities", {})
-
-            # Check if the protocol version is supported
-            # For now, accept any protocol version
-            response["result"] = {
-                "serverInfo": {
-                    "name": "Codebase Examiner",
-                    "version": version("codebase-examiner")
-                },
-                "capabilities": {
-                    "examineProvider": True
-                },
-                "protocolVersion": protocol_version
-            }
-        elif method == "shutdown":
-            # Handle shutdown method
-            self.should_exit = True
-            response["result"] = None
-        elif method == "exit":
-            # Handle exit method
-            self.should_exit = True
-            response["result"] = None
-        else:
-            # Unknown method
-            response["error"] = {
-                "code": -32601,
-                "message": f"Method not found: {method}"
-            }
-
-        return response
 
     def _handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """Handle a single request.
@@ -166,13 +68,26 @@ class StdioMcpServer:
 
         # Check if this is a JSON-RPC 2.0 request
         if "jsonrpc" in request and request.get("jsonrpc") == "2.0" and "method" in request:
-            return self._handle_jsonrpc_request(request)
+            response = self.rpc_handler.handle_request(request)
+            self.should_exit = self.rpc_handler.should_exit
+            return response
 
         # Handle legacy command-based requests
         command = request.get("command")
 
         if command == "examine":
-            return self._handle_examine_request(request)
+            # Convert to JSON-RPC format and use the RPC handler
+            jsonrpc_request = {
+                "jsonrpc": "2.0",
+                "id": "legacy",
+                "method": "tools/call",
+                "params": {
+                    "name": "examine",
+                    "arguments": request
+                }
+            }
+            response = self.rpc_handler.handle_request(jsonrpc_request)
+            return response.get("result", {"status": "error", "message": "Failed to process examine request"})
         elif command == "ping":
             return self._handle_ping(request)
         elif command == "exit":

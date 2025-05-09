@@ -2,6 +2,92 @@
 
 A command-line tool that examines Python codebases and generates comprehensive documentation about modules, classes, and functions. It can be run as a standalone CLI tool or as an HTTP/STDIO MCP server to provide this service to GenAI agents.
 
+## Architecture
+
+The Codebase Examiner is built with a layered architecture that separates concerns and allows for multiple interfaces to the core functionality.
+
+### C4 Model Diagrams
+
+#### Context Diagram (Level 1)
+
+```mermaid
+C4Context
+  title System Context Diagram for Codebase Examiner
+
+  Person(user, "User", "A developer or AI agent that needs to understand a Python codebase")
+  System(codebaseExaminer, "Codebase Examiner", "Analyzes Python codebases and generates comprehensive documentation")
+  System_Ext(pythonCodebase, "Python Codebase", "The target Python project to be analyzed")
+
+  Rel(user, codebaseExaminer, "Uses")
+  Rel(codebaseExaminer, pythonCodebase, "Analyzes")
+```
+
+#### Container Diagram (Level 2)
+
+```mermaid
+C4Container
+  title Container Diagram for Codebase Examiner
+
+  Person(user, "User", "A developer or AI agent that needs to understand a Python codebase")
+
+  System_Boundary(codebaseExaminer, "Codebase Examiner") {
+    Container(cli, "CLI Runner", "Python/Typer", "Command-line interface for the Codebase Examiner")
+    Container(httpServer, "HTTP Server", "Python/FastAPI", "HTTP-based MCP server for remote access")
+    Container(stdioServer, "STDIO Server", "Python", "STDIO-based MCP server for direct integration")
+    Container(rpcLayer, "RPC Layer", "Python", "Handles JSON-RPC requests and routes them to appropriate handlers")
+    Container(examiner, "Examiner", "Python", "Core functionality for analyzing Python code and generating documentation")
+  }
+
+  System_Ext(pythonCodebase, "Python Codebase", "The target Python project to be analyzed")
+
+  Rel(user, cli, "Uses", "Command line")
+  Rel(user, httpServer, "Uses", "HTTP/JSON")
+  Rel(user, stdioServer, "Uses", "STDIO/JSON")
+
+  Rel(cli, examiner, "Uses")
+  Rel(httpServer, rpcLayer, "Uses")
+  Rel(stdioServer, rpcLayer, "Uses")
+  Rel(rpcLayer, examiner, "Uses")
+  Rel(examiner, pythonCodebase, "Analyzes")
+```
+
+#### Component Diagram (Level 3)
+
+```mermaid
+C4Component
+  title Component Diagram for Codebase Examiner
+
+  Container_Boundary(cli, "CLI Runner") {
+    Component(cliApp, "CLI Application", "Python/Typer", "Provides command-line interface")
+  }
+
+  Container_Boundary(transport, "Transport Layer") {
+    Component(httpServer, "HTTP Server", "Python/FastAPI", "Handles HTTP requests")
+    Component(stdioServer, "STDIO Server", "Python", "Handles STDIO communication")
+  }
+
+  Container_Boundary(rpc, "RPC Layer") {
+    Component(jsonRpcHandler, "JSON-RPC Handler", "Python", "Processes JSON-RPC requests")
+  }
+
+  Container_Boundary(examiner, "Examiner") {
+    Component(fileFinder, "File Finder", "Python", "Finds Python files in a directory tree")
+    Component(codeInspector, "Code Inspector", "Python", "Extracts documentation from Python code")
+    Component(docGenerator, "Documentation Generator", "Python", "Generates documentation in various formats")
+  }
+
+  Rel(cliApp, codeInspector, "Uses")
+  Rel(cliApp, docGenerator, "Uses")
+
+  Rel(httpServer, jsonRpcHandler, "Uses")
+  Rel(stdioServer, jsonRpcHandler, "Uses")
+
+  Rel(jsonRpcHandler, codeInspector, "Uses")
+  Rel(jsonRpcHandler, docGenerator, "Uses")
+
+  Rel(codeInspector, fileFinder, "Uses")
+```
+
 ## Features
 
 - Find all Python files in a project directory tree

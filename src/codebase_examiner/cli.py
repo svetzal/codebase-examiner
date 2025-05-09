@@ -2,14 +2,12 @@
 
 
 import sys
-import json
 from pathlib import Path
-from typing import Optional, Set, List
+from typing import Optional, List
 
 import typer
 from rich.console import Console
 from rich.markdown import Markdown
-
 
 from codebase_examiner.core.code_inspector import inspect_codebase
 from codebase_examiner.core.doc_generator import generate_documentation
@@ -79,7 +77,7 @@ def serve(
 
 
     try:
-        from codebase_examiner.mcp import start_server
+        from codebase_examiner.mcp_http import start_server
         console.print(f"[bold blue]Starting MCP server on port {port}...[/bold blue]")
         start_server(port)
         return 0
