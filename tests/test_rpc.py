@@ -32,9 +32,7 @@ class TestJsonRpcHandler:
 
     def test_should_be_instantiated(self, mock_tool):
         """Test that JsonRpcHandler can be instantiated."""
-        handler = JsonRpcHandler()
-        # Replace the tools list with our mock tool
-        handler.tools = [mock_tool]
+        handler = JsonRpcHandler(tools=[mock_tool])
 
         assert isinstance(handler, JsonRpcHandler)
         assert handler.should_exit is False
@@ -43,9 +41,7 @@ class TestJsonRpcHandler:
 
     def test_should_handle_initialize_request(self, mock_tool):
         """Test handling of initialize request."""
-        handler = JsonRpcHandler()
-        # Replace the tools list with our mock tool
-        handler.tools = [mock_tool]
+        handler = JsonRpcHandler(tools=[mock_tool])
         request = JsonRpcRequest(
             jsonrpc="2.0",
             id=1,
@@ -67,9 +63,7 @@ class TestJsonRpcHandler:
 
     def test_should_handle_tools_list_request(self, mock_tool):
         """Test handling of tools/list request."""
-        handler = JsonRpcHandler()
-        # Replace the tools list with our mock tool
-        handler.tools = [mock_tool]
+        handler = JsonRpcHandler(tools=[mock_tool])
         request = JsonRpcRequest(
             jsonrpc="2.0",
             id=8,
@@ -93,9 +87,7 @@ class TestJsonRpcHandler:
 
     def test_should_handle_tools_call_examine_request(self, mock_tool):
         """Test handling of tools/call request for the examine tool."""
-        handler = JsonRpcHandler()
-        # Replace the tools list with our mock tool
-        handler.tools = [mock_tool]
+        handler = JsonRpcHandler(tools=[mock_tool])
         request = JsonRpcRequest(
             jsonrpc="2.0",
             id=9,
@@ -127,9 +119,7 @@ class TestJsonRpcHandler:
 
     def test_should_handle_shutdown_request(self, mock_tool):
         """Test handling of shutdown request."""
-        handler = JsonRpcHandler()
-        # Replace the tools list with our mock tool
-        handler.tools = [mock_tool]
+        handler = JsonRpcHandler(tools=[mock_tool])
         request = JsonRpcRequest(
             jsonrpc="2.0",
             id=10,
@@ -147,9 +137,7 @@ class TestJsonRpcHandler:
 
     def test_should_handle_exit_request(self, mock_tool):
         """Test handling of exit request."""
-        handler = JsonRpcHandler()
-        # Replace the tools list with our mock tool
-        handler.tools = [mock_tool]
+        handler = JsonRpcHandler(tools=[mock_tool])
         request = JsonRpcRequest(
             jsonrpc="2.0",
             id=11,
@@ -167,9 +155,7 @@ class TestJsonRpcHandler:
 
     def test_should_handle_unknown_method(self, mock_tool):
         """Test handling of unknown method."""
-        handler = JsonRpcHandler()
-        # Replace the tools list with our mock tool
-        handler.tools = [mock_tool]
+        handler = JsonRpcHandler(tools=[mock_tool])
         request = JsonRpcRequest(
             jsonrpc="2.0",
             id=12,
@@ -188,9 +174,7 @@ class TestJsonRpcHandler:
 
     def test_should_handle_tools_call_unknown_tool(self, mock_tool):
         """Test handling of tools/call request for an unknown tool."""
-        handler = JsonRpcHandler()
-        # Replace the tools list with our mock tool
-        handler.tools = [mock_tool]
+        handler = JsonRpcHandler(tools=[mock_tool])
         request = JsonRpcRequest(
             jsonrpc="2.0",
             id=13,

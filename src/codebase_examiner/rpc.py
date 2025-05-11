@@ -41,13 +41,16 @@ class JsonRpcError(Exception):
 class JsonRpcHandler:
     """Base class for handling JSON-RPC 2.0 requests."""
 
-    def __init__(self):
-        """Initialize the JSON-RPC handler."""
-        self.should_exit = False
-        self.tools: List[LLMTool] = []
+    def __init__(self, tools: List[LLMTool]):
+        """Initialize the JSON-RPC handler.
 
-        # Add tools
-        self.tools.append(LLMExaminerTool())
+        Args:
+            tools (List[LLMTool]): List of tools to serve.
+        """
+        self.should_exit = False
+
+        # Initialize tools
+        self.tools: List[LLMTool] = tools
 
         self.methods = {
             "initialize": self._handle_initialize,

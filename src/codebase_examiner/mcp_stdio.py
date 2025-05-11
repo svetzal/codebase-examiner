@@ -150,5 +150,6 @@ def start_server(rpc_handler: JsonRpcHandler) -> None:
 
 
 if __name__ == "__main__":
-    rpc_handler = JsonRpcHandler()
+    from codebase_examiner.tools import LLMExaminerTool
+    rpc_handler = JsonRpcHandler(tools=[LLMExaminerTool()])
     start_server(rpc_handler)
