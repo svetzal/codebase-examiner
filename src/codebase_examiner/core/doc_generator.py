@@ -1,7 +1,7 @@
 """Module for generating documentation from code inspection results."""
 
 import json
-from typing import Dict, List, Any
+from typing import List
 
 from codebase_examiner.core.code_inspector import ModuleDocumentation
 

@@ -1,6 +1,5 @@
 """Command-line interface for the Codebase Examiner tool."""
 
-
 import sys
 from pathlib import Path
 from typing import Optional, List
@@ -18,11 +17,12 @@ console = Console()
 
 @app.command()
 def examine(
-    directory: str = typer.Option(".", "--directory", "-d", help="The directory to examine"),
-    output_format: str = typer.Option("markdown", "--format", "-f", help="Output format (markdown or json)"),
-    output_file: Optional[str] = typer.Option(None, "--output", "-o", help="Output file path"),
-    exclude: List[str] = typer.Option([".venv"], "--exclude", "-e", help="Directories to exclude"),
-    include_dotfiles: bool = typer.Option(False, "--include-dotfiles", help="Include files and directories starting with a dot"),
+        directory: str = typer.Option(".", "--directory", "-d", help="The directory to examine"),
+        output_format: str = typer.Option("markdown", "--format", "-f", help="Output format (markdown or json)"),
+        output_file: Optional[str] = typer.Option(None, "--output", "-o", help="Output file path"),
+        exclude: List[str] = typer.Option([".venv"], "--exclude", "-e", help="Directories to exclude"),
+        include_dotfiles: bool = typer.Option(False, "--include-dotfiles",
+                                              help="Include files and directories starting with a dot"),
 ):
     """Examine a Python codebase and generate documentation."""
     console.print(f"[bold blue]Examining codebase in directory: {directory}[/bold blue]")
@@ -71,10 +71,9 @@ def examine(
 
 @app.command()
 def serve(
-    port: int = typer.Option(8080, "--port", "-p", help="Port to run the MCP server on"),
+        port: int = typer.Option(8080, "--port", "-p", help="Port to run the MCP server on"),
 ):
     """Run the Codebase Examiner as an MCP server over HTTP."""
-
 
     try:
         from codebase_examiner.mcp_http import start_server
@@ -95,7 +94,6 @@ def serve(
 @app.command()
 def serve_stdio():
     """Run the Codebase Examiner as an MCP server over standard input/output."""
-
 
     try:
         from codebase_examiner.mcp_stdio import start_server

@@ -1,8 +1,8 @@
 """Module for finding Python files in a directory structure."""
 
+import configparser
 import os
 import pathlib
-import configparser
 import re
 from typing import List, Set, Optional, Tuple
 
@@ -82,9 +82,9 @@ def is_test_file(file_path: pathlib.Path, test_patterns: Optional[Set[str]]) -> 
 
 
 def find_python_files(
-    directory: str = ".",
-    exclude_dirs: Set[str] = None,
-    exclude_dotfiles: bool = True,
+        directory: str = ".",
+        exclude_dirs: Set[str] = None,
+        exclude_dotfiles: bool = True,
 ) -> List[pathlib.Path]:
     """Find all Python files in the given directory and its subdirectories.
 

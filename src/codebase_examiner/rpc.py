@@ -5,7 +5,7 @@ transport mechanisms (HTTP, STDIO, etc.) to handle RPC requests.
 """
 
 from importlib.metadata import version
-from typing import Dict, Any, List, Optional, Set, Union, Callable
+from typing import Dict, Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -94,7 +94,6 @@ class JsonRpcHandler:
                 -32603,
                 f"Internal error: {str(e)}"
             )
-
 
     def _create_result_response(self, request_id: Any, result: Any) -> Dict[str, Any]:
         """Create a JSON-RPC 2.0 result response.

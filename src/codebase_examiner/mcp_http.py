@@ -105,8 +105,6 @@ class HttpMcpServer:
         uvicorn.run(self.app, host=host, port=port)
 
 
-
-
 def start_server(port: int, rpc_handler: JsonRpcHandler):
     """Start the MCP server.
 
@@ -120,6 +118,7 @@ def start_server(port: int, rpc_handler: JsonRpcHandler):
 
 if __name__ == "__main__":
     import sys
+
     if len(sys.argv) < 2:
         print("Usage: python -m codebase_examiner.mcp_http <port>")
         sys.exit(1)

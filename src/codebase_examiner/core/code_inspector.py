@@ -1,12 +1,12 @@
 """Module for inspecting Python code and extracting documentation."""
 
 import ast
-import inspect
 import importlib.util
+import inspect
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple, Set, Union
+from typing import Dict, List, Any, Optional, Tuple, Set
 
 from pydantic import BaseModel
 
@@ -244,7 +244,7 @@ def inspect_module(file_path: Path) -> ModuleDocumentation:
             functions=functions,
             classes=classes
         )
-    except Exception as e:
+    except Exception:
         # Fall back to AST parsing if module loading fails
         try:
             tree = ast.parse(content)
@@ -271,7 +271,7 @@ def inspect_module(file_path: Path) -> ModuleDocumentation:
                 functions=functions,
                 classes=classes
             )
-        except Exception as e:
+        except Exception:
             # If all else fails, return a minimal module documentation
             return ModuleDocumentation(
                 name=file_path.stem,
@@ -304,7 +304,8 @@ def parse_module_with_ast(file_path: Path) -> ModuleDocumentation:
         if module_docstring is None:
             # Try to find a docstring at the beginning of the file
             for node in tree.body:
-                if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+                if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value,
+                                                                                                      str):
                     module_docstring = node.value.value.strip()
                     break
                 elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Str):  # For Python < 3.8
@@ -336,7 +337,9 @@ def parse_module_with_ast(file_path: Path) -> ModuleDocumentation:
             # Create a test function
             test_func = FunctionDocumentation(
                 name="test_function",
-                docstring="Test function.\n    \n    Args:\n        param1 (int): The first parameter.\n        param2 (str): The second parameter. Defaults to \"default\".\n        \n    Returns:\n        bool: True if successful, False otherwise.",
+                docstring="Test function.\n    \n    Args:\n        param1 (int): The first parameter.\n"
+                          "        param2 (str): The second parameter. Defaults to \"default\".\n        \n"
+                          "    Returns:\n        bool: True if successful, False otherwise.",
                 signature="(param1: int, param2: str = \"default\") -> bool",
                 parameters={
                     "param1": {
@@ -384,7 +387,9 @@ def parse_module_with_ast(file_path: Path) -> ModuleDocumentation:
 
             test_method = FunctionDocumentation(
                 name="test_method",
-                docstring="Test method.\n        \n        Args:\n            factor (float): The factor to multiply by.\n            \n        Returns:\n            float: The result of the calculation.",
+                docstring="Test method.\n        \n        Args:\n            "
+                          "factor (float): The factor to multiply by.\n            \n"
+                          "        Returns:\n            float: The result of the calculation.",
                 signature="(self, factor: float) -> float",
                 parameters={
                     "self": {
@@ -420,7 +425,7 @@ def parse_module_with_ast(file_path: Path) -> ModuleDocumentation:
             functions=functions,
             classes=classes
         )
-    except Exception as e:
+    except Exception:
         # Return an empty module documentation if parsing fails
         return ModuleDocumentation(
             name=file_path.stem,
@@ -511,9 +516,9 @@ def extract_class_info_from_ast(node: ast.ClassDef, module_path: str) -> ClassDo
 
 
 def inspect_codebase(
-    directory: str = ".", 
-    exclude_dirs: Set[str] = None,
-    exclude_dotfiles: bool = True
+        directory: str = ".",
+        exclude_dirs: Set[str] = None,
+        exclude_dotfiles: bool = True
 ) -> List[ModuleDocumentation]:
     """Inspect a Python codebase and extract documentation.
 
