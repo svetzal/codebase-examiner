@@ -5,11 +5,12 @@ transport mechanisms (HTTP, STDIO, etc.) to handle RPC requests.
 """
 
 from importlib.metadata import version
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from pydantic import BaseModel, Field
 
-from codebase_examiner.tools import ToolRegistry, ExaminerTool
+from codebase_examiner.tools import LLMExaminerTool
+from mojentic.llm.tools.llm_tool import LLMTool
 
 
 class JsonRpcRequest(BaseModel):
@@ -43,10 +44,10 @@ class JsonRpcHandler:
     def __init__(self):
         """Initialize the JSON-RPC handler."""
         self.should_exit = False
-        self.tool_registry = ToolRegistry()
+        self.tools: List[LLMTool] = []
 
-        # Register default tools
-        self.tool_registry.register_tool(ExaminerTool())
+        # Add tools
+        self.tools.append(LLMExaminerTool())
 
         self.methods = {
             "initialize": self._handle_initialize,
@@ -192,8 +193,16 @@ class JsonRpcHandler:
         Returns:
             Dict[str, Any]: The result
         """
+        tools_list = []
+        for tool in self.tools:
+            descriptor = tool.descriptor
+            tools_list.append({
+                "name": descriptor["function"]["name"],
+                "description": descriptor["function"]["description"]
+            })
+
         return {
-            "tools": self.tool_registry.list_tools()
+            "tools": tools_list
         }
 
     def _handle_tools_call(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -208,8 +217,10 @@ class JsonRpcHandler:
         tool_name = params.get("name")
         tool_arguments = params.get("arguments", {})
 
-        if not self.tool_registry.has_tool(tool_name):
+        # Find the tool with the given name
+        tool = next((t for t in self.tools if t.descriptor["function"]["name"] == tool_name), None)
+
+        if tool is None:
             raise JsonRpcError(-32601, f"Tool not found: {tool_name}")
 
-        tool = self.tool_registry.get_tool(tool_name)
-        return tool.execute(tool_arguments)
+        return tool.run(**tool_arguments)
