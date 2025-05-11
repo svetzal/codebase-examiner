@@ -15,6 +15,14 @@ from codebase_examiner.core.code_inspector import inspect_codebase
 from codebase_examiner.core.doc_generator import generate_documentation
 
 
+class JsonRpcRequest(BaseModel):
+    """JSON-RPC 2.0 request model."""
+    jsonrpc: str = Field("2.0", description="JSON-RPC version")
+    id: Optional[Any] = Field(None, description="Request ID")
+    method: str = Field(..., description="Method name")
+    params: Optional[Dict[str, Any]] = Field(None, description="Method parameters")
+
+
 class JsonRpcError(Exception):
     """Exception raised for JSON-RPC errors."""
 
@@ -46,26 +54,18 @@ class JsonRpcHandler:
             "tools/call": self._handle_tools_call,
         }
 
-    def handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    def handle_request(self, request: JsonRpcRequest) -> Dict[str, Any]:
         """Handle a JSON-RPC 2.0 request.
 
         Args:
-            request (Dict[str, Any]): The JSON-RPC request
+            request (JsonRpcRequest): The JSON-RPC request
 
         Returns:
             Dict[str, Any]: The JSON-RPC response
         """
-        # Check if this is a valid JSON-RPC 2.0 request
-        if not self._is_valid_jsonrpc_request(request):
-            return self._create_error_response(
-                request.get("id"),
-                -32600,
-                "Invalid Request"
-            )
-
-        method = request.get("method")
-        request_id = request.get("id")
-        params = request.get("params", {})
+        method = request.method
+        request_id = request.id
+        params = request.params or {}
 
         # Check if the method exists
         if method not in self.methods:
@@ -93,21 +93,6 @@ class JsonRpcHandler:
                 f"Internal error: {str(e)}"
             )
 
-    def _is_valid_jsonrpc_request(self, request: Dict[str, Any]) -> bool:
-        """Check if a request is a valid JSON-RPC 2.0 request.
-
-        Args:
-            request (Dict[str, Any]): The request to check
-
-        Returns:
-            bool: True if the request is valid, False otherwise
-        """
-        return (
-            isinstance(request, dict) and
-            request.get("jsonrpc") == "2.0" and
-            "method" in request and
-            isinstance(request.get("method"), str)
-        )
 
     def _create_result_response(self, request_id: Any, result: Any) -> Dict[str, Any]:
         """Create a JSON-RPC 2.0 result response.
@@ -268,11 +253,3 @@ class JsonRpcHandler:
                 "status": "error",
                 "message": str(e)
             }
-
-
-class JsonRpcRequest(BaseModel):
-    """JSON-RPC 2.0 request model."""
-    jsonrpc: str = Field("2.0", description="JSON-RPC version")
-    id: Optional[Any] = Field(None, description="Request ID")
-    method: str = Field(..., description="Method name")
-    params: Optional[Dict[str, Any]] = Field(None, description="Method parameters")

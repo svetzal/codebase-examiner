@@ -4,6 +4,7 @@ import json
 
 import uvicorn
 from fastapi import FastAPI, Request, Response
+from pydantic import ValidationError
 
 from codebase_examiner.rpc import JsonRpcHandler, JsonRpcRequest
 
@@ -40,7 +41,7 @@ class HttpMcpServer:
             rpc_request = JsonRpcRequest(**body)
 
             # Handle the JSON-RPC request
-            response = self.rpc_handler.handle_request(rpc_request.model_dump())
+            response = self.rpc_handler.handle_request(rpc_request)
 
             # Return the response
             return Response(
@@ -55,6 +56,22 @@ class HttpMcpServer:
                 "error": {
                     "code": -32700,
                     "message": "Parse error"
+                }
+            }
+            return Response(
+                content=json.dumps(error_response),
+                media_type="application/json",
+                status_code=400
+            )
+        except ValidationError as e:
+            # Invalid Request (validation error)
+            error_response = {
+                "jsonrpc": "2.0",
+                "id": None,
+                "error": {
+                    "code": -32600,
+                    "message": "Invalid Request",
+                    "data": str(e)
                 }
             }
             return Response(

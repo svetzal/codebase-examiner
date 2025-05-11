@@ -4,6 +4,8 @@ import json
 import sys
 from typing import Dict, Any
 
+from pydantic import ValidationError
+
 from codebase_examiner.rpc import JsonRpcHandler, JsonRpcRequest
 
 
@@ -70,39 +72,51 @@ class StdioMcpServer:
         if "error" in request:
             return {"status": "error", "message": request["error"]}
 
-        # Check if this is a JSON-RPC 2.0 request
-        if "jsonrpc" in request and request.get("jsonrpc") == "2.0" and "method" in request:
-            # Convert to JsonRpcRequest model
-            rpc_request = JsonRpcRequest(**request)
-            response = self.rpc_handler.handle_request(rpc_request.model_dump())
-            self.should_exit = self.rpc_handler.should_exit
-            return response
+        try:
+            # Check if this is a JSON-RPC 2.0 request
+            if "jsonrpc" in request and request.get("jsonrpc") == "2.0" and "method" in request:
+                # Convert to JsonRpcRequest model
+                rpc_request = JsonRpcRequest(**request)
+                response = self.rpc_handler.handle_request(rpc_request)
+                self.should_exit = self.rpc_handler.should_exit
+                return response
 
-        # Handle legacy command-based requests
-        command = request.get("command")
+            # Handle legacy command-based requests
+            command = request.get("command")
 
-        if command == "examine":
-            # Convert to JSON-RPC format and use the RPC handler
-            jsonrpc_request = JsonRpcRequest(
-                jsonrpc="2.0",
-                id="legacy",
-                method="tools/call",
-                params={
-                    "name": "examine",
-                    "arguments": request
+            if command == "examine":
+                # Convert to JSON-RPC format and use the RPC handler
+                jsonrpc_request = JsonRpcRequest(
+                    jsonrpc="2.0",
+                    id="legacy",
+                    method="tools/call",
+                    params={
+                        "name": "examine",
+                        "arguments": request
+                    }
+                )
+                response = self.rpc_handler.handle_request(jsonrpc_request)
+                return response.get("result", {"status": "error", "message": "Failed to process examine request"})
+            elif command == "ping":
+                return self._handle_ping(request)
+            elif command == "exit":
+                self.should_exit = True
+                return {"status": "success", "message": "Server exiting"}
+            else:
+                return {
+                    "status": "error",
+                    "message": f"Unknown command: {command}"
                 }
-            )
-            response = self.rpc_handler.handle_request(jsonrpc_request.model_dump())
-            return response.get("result", {"status": "error", "message": "Failed to process examine request"})
-        elif command == "ping":
-            return self._handle_ping(request)
-        elif command == "exit":
-            self.should_exit = True
-            return {"status": "success", "message": "Server exiting"}
-        else:
+        except ValidationError as e:
+            # Invalid Request (validation error)
             return {
-                "status": "error",
-                "message": f"Unknown command: {command}"
+                "jsonrpc": "2.0",
+                "id": None,
+                "error": {
+                    "code": -32600,
+                    "message": "Invalid Request",
+                    "data": str(e)
+                }
             }
 
     def run(self) -> None:
