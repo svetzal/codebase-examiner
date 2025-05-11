@@ -1,11 +1,6 @@
-"""Tool implementations for Codebase Examiner.
-
-This module provides LLMTool implementations that can be used with the JsonRpcHandler.
-"""
-
 import os
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import List, Dict, Any
 
 from mojentic.llm.tools.llm_tool import LLMTool
 
@@ -13,7 +8,7 @@ from codebase_examiner.core.code_inspector import inspect_codebase
 from codebase_examiner.core.doc_generator import generate_documentation
 
 
-class LLMExaminerTool(LLMTool):
+class ExaminerTool(LLMTool):
     """LLM Tool for examining a Python codebase and generating documentation."""
 
     def run(self, directory: str = ".", exclude_dirs: List[str] = None, format_type: str = "markdown", include_dotfiles: bool = False) -> Dict[str, Any]:
@@ -97,7 +92,3 @@ class LLMExaminerTool(LLMTool):
                 }
             }
         }
-
-
-
-

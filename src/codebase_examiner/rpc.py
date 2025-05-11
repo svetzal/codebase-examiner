@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional, List
 
 from pydantic import BaseModel, Field
 
-from codebase_examiner.tools import LLMExaminerTool
+from codebase_examiner.core.examiner_tool import ExaminerTool
 from mojentic.llm.tools.llm_tool import LLMTool
 
 

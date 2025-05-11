@@ -118,11 +118,11 @@ def start_server(port: int, rpc_handler: JsonRpcHandler):
 
 if __name__ == "__main__":
     import sys
-    from codebase_examiner.tools import LLMExaminerTool
+    from codebase_examiner.core.examiner_tool import ExaminerTool
 
     if len(sys.argv) < 2:
         print("Usage: python -m codebase_examiner.mcp_http <port>")
         sys.exit(1)
     port = int(sys.argv[1])
-    rpc_handler = JsonRpcHandler(tools=[LLMExaminerTool()])
+    rpc_handler = JsonRpcHandler(tools=[ExaminerTool()])
     start_server(port, rpc_handler)

@@ -78,9 +78,9 @@ def serve(
     try:
         from codebase_examiner.mcp_http import start_server
         from codebase_examiner.rpc import JsonRpcHandler
-        from codebase_examiner.tools import LLMExaminerTool
+        from codebase_examiner.core.examiner_tool import ExaminerTool
         console.print(f"[bold blue]Starting MCP server on port {port}...[/bold blue]")
-        rpc_handler = JsonRpcHandler(tools=[LLMExaminerTool()])
+        rpc_handler = JsonRpcHandler(tools=[ExaminerTool()])
         start_server(port, rpc_handler)
         return 0
     except ImportError:
@@ -99,11 +99,11 @@ def serve_stdio():
     try:
         from codebase_examiner.mcp_stdio import start_server
         from codebase_examiner.rpc import JsonRpcHandler
-        from codebase_examiner.tools import LLMExaminerTool
+        from codebase_examiner.core.examiner_tool import ExaminerTool
         console.print("[bold blue]Starting STDIO MCP server...[/bold blue]")
         # This print must be the last console output before the server takes over stdout
         console.print("[bold green]Server ready to receive commands on stdin[/bold green]")
-        rpc_handler = JsonRpcHandler(tools=[LLMExaminerTool()])
+        rpc_handler = JsonRpcHandler(tools=[ExaminerTool()])
         start_server(rpc_handler)
         return 0
     except ImportError:
