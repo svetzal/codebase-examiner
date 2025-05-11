@@ -9,6 +9,8 @@ from importlib.metadata import version
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Set, Union, Callable
 
+from pydantic import BaseModel, Field
+
 from codebase_examiner.core.code_inspector import inspect_codebase
 from codebase_examiner.core.doc_generator import generate_documentation
 
@@ -266,3 +268,11 @@ class JsonRpcHandler:
                 "status": "error",
                 "message": str(e)
             }
+
+
+class JsonRpcRequest(BaseModel):
+    """JSON-RPC 2.0 request model."""
+    jsonrpc: str = Field("2.0", description="JSON-RPC version")
+    id: Optional[Any] = Field(None, description="Request ID")
+    method: str = Field(..., description="Method name")
+    params: Optional[Dict[str, Any]] = Field(None, description="Method parameters")

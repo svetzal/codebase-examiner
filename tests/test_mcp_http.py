@@ -6,7 +6,8 @@ from unittest.mock import patch, Mock
 
 from fastapi.testclient import TestClient
 
-from codebase_examiner.mcp_http import app, rpc_handler
+from codebase_examiner.mcp_http import HttpMcpServer
+from codebase_examiner.rpc import JsonRpcHandler
 
 
 class TestMcpServer(unittest.TestCase):
@@ -14,7 +15,9 @@ class TestMcpServer(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.client = TestClient(app)
+        self.rpc_handler = JsonRpcHandler()
+        self.server = HttpMcpServer(self.rpc_handler)
+        self.client = TestClient(self.server.app)
 
     def test_jsonrpc_initialize_request(self):
         """Test handling of JSON-RPC initialize request."""
@@ -45,7 +48,7 @@ class TestMcpServer(unittest.TestCase):
             }
         }
 
-        with patch.object(rpc_handler, 'handle_request', return_value=mock_response):
+        with patch.object(self.rpc_handler, 'handle_request', return_value=mock_response):
             # Send the request
             response = self.client.post(
                 "/jsonrpc",
@@ -86,7 +89,7 @@ class TestMcpServer(unittest.TestCase):
             }
         }
 
-        with patch.object(rpc_handler, 'handle_request', return_value=mock_response):
+        with patch.object(self.rpc_handler, 'handle_request', return_value=mock_response):
             # Send the request
             response = self.client.post(
                 "/jsonrpc",
@@ -130,7 +133,7 @@ class TestMcpServer(unittest.TestCase):
             }
         }
 
-        with patch.object(rpc_handler, 'handle_request', return_value=mock_response):
+        with patch.object(self.rpc_handler, 'handle_request', return_value=mock_response):
             # Send the request
             response = self.client.post(
                 "/jsonrpc",

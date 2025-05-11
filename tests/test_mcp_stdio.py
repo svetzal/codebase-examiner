@@ -13,7 +13,8 @@ class TestStdioMcpServer(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.server = StdioMcpServer()
+        self.rpc_handler = JsonRpcHandler()
+        self.server = StdioMcpServer(self.rpc_handler)
         self.mock_stdout = StringIO()
         self.mock_stdin = StringIO()
 

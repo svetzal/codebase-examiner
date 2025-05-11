@@ -4,15 +4,19 @@ import json
 import sys
 from typing import Dict, Any
 
-from codebase_examiner.rpc import JsonRpcHandler
+from codebase_examiner.rpc import JsonRpcHandler, JsonRpcRequest
 
 
 class StdioMcpServer:
     """An MCP server that communicates over standard input/output using JSON-RPC."""
 
-    def __init__(self):
-        """Initialize the STDIO MCP server."""
-        self.rpc_handler = JsonRpcHandler()
+    def __init__(self, rpc_handler: JsonRpcHandler):
+        """Initialize the STDIO MCP server.
+
+        Args:
+            rpc_handler (JsonRpcHandler): The JSON-RPC handler to use.
+        """
+        self.rpc_handler = rpc_handler
         self.should_exit = False
 
     def _read_request(self) -> Dict[str, Any]:
@@ -68,7 +72,9 @@ class StdioMcpServer:
 
         # Check if this is a JSON-RPC 2.0 request
         if "jsonrpc" in request and request.get("jsonrpc") == "2.0" and "method" in request:
-            response = self.rpc_handler.handle_request(request)
+            # Convert to JsonRpcRequest model
+            rpc_request = JsonRpcRequest(**request)
+            response = self.rpc_handler.handle_request(rpc_request.model_dump())
             self.should_exit = self.rpc_handler.should_exit
             return response
 
@@ -77,16 +83,16 @@ class StdioMcpServer:
 
         if command == "examine":
             # Convert to JSON-RPC format and use the RPC handler
-            jsonrpc_request = {
-                "jsonrpc": "2.0",
-                "id": "legacy",
-                "method": "tools/call",
-                "params": {
+            jsonrpc_request = JsonRpcRequest(
+                jsonrpc="2.0",
+                id="legacy",
+                method="tools/call",
+                params={
                     "name": "examine",
                     "arguments": request
                 }
-            }
-            response = self.rpc_handler.handle_request(jsonrpc_request)
+            )
+            response = self.rpc_handler.handle_request(jsonrpc_request.model_dump())
             return response.get("result", {"status": "error", "message": "Failed to process examine request"})
         elif command == "ping":
             return self._handle_ping(request)
@@ -119,11 +125,16 @@ class StdioMcpServer:
                 })
 
 
-def start_server() -> None:
-    """Start the STDIO MCP server."""
-    server = StdioMcpServer()
+def start_server(rpc_handler: JsonRpcHandler) -> None:
+    """Start the STDIO MCP server.
+
+    Args:
+        rpc_handler (JsonRpcHandler): The JSON-RPC handler to use.
+    """
+    server = StdioMcpServer(rpc_handler)
     server.run()
 
 
 if __name__ == "__main__":
-    start_server()
+    rpc_handler = JsonRpcHandler()
+    start_server(rpc_handler)

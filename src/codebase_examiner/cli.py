@@ -78,8 +78,10 @@ def serve(
 
     try:
         from codebase_examiner.mcp_http import start_server
+        from codebase_examiner.rpc import JsonRpcHandler
         console.print(f"[bold blue]Starting MCP server on port {port}...[/bold blue]")
-        start_server(port)
+        rpc_handler = JsonRpcHandler()
+        start_server(port, rpc_handler)
         return 0
     except ImportError:
         console.print("[bold red]Error: MCP server dependencies not installed[/bold red]")
@@ -97,10 +99,12 @@ def serve_stdio():
 
     try:
         from codebase_examiner.mcp_stdio import start_server
+        from codebase_examiner.rpc import JsonRpcHandler
         console.print("[bold blue]Starting STDIO MCP server...[/bold blue]")
         # This print must be the last console output before the server takes over stdout
         console.print("[bold green]Server ready to receive commands on stdin[/bold green]")
-        start_server()
+        rpc_handler = JsonRpcHandler()
+        start_server(rpc_handler)
         return 0
     except ImportError:
         console.print("[bold red]Error: MCP server dependencies not installed[/bold red]")
