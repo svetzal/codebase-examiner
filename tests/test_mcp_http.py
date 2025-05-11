@@ -1,13 +1,11 @@
 """Tests for the HTTP-based MCP server."""
 
-import json
-import pytest
-from unittest.mock import patch, Mock
+from unittest.mock import Mock
 
 from fastapi.testclient import TestClient
 
-from codebase_examiner.mcp_http import HttpMcpServer
-from codebase_examiner.rpc import JsonRpcHandler, JsonRpcRequest
+from codebase_examiner.mcp.mcp_http import HttpMcpServer
+from codebase_examiner.mcp.rpc import JsonRpcHandler
 
 
 class TestHttpMcpServer:

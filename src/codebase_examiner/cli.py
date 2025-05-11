@@ -76,8 +76,8 @@ def serve(
     """Run the Codebase Examiner as an MCP server over HTTP."""
 
     try:
-        from codebase_examiner.mcp_http import start_server
-        from codebase_examiner.rpc import JsonRpcHandler
+        from codebase_examiner.mcp.mcp_http import start_server
+        from codebase_examiner.mcp.rpc import JsonRpcHandler
         from codebase_examiner.core.examiner_tool import ExaminerTool
         console.print(f"[bold blue]Starting MCP server on port {port}...[/bold blue]")
         rpc_handler = JsonRpcHandler(tools=[ExaminerTool()])
@@ -97,8 +97,8 @@ def serve_stdio():
     """Run the Codebase Examiner as an MCP server over standard input/output."""
 
     try:
-        from codebase_examiner.mcp_stdio import start_server
-        from codebase_examiner.rpc import JsonRpcHandler
+        from codebase_examiner.mcp.mcp_stdio import start_server
+        from codebase_examiner.mcp.rpc import JsonRpcHandler
         from codebase_examiner.core.examiner_tool import ExaminerTool
         console.print("[bold blue]Starting STDIO MCP server...[/bold blue]")
         # This print must be the last console output before the server takes over stdout

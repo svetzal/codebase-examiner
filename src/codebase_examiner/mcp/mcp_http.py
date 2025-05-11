@@ -6,7 +6,7 @@ import uvicorn
 from fastapi import FastAPI, Request, Response
 from pydantic import ValidationError
 
-from codebase_examiner.rpc import JsonRpcHandler, JsonRpcRequest
+from codebase_examiner.mcp.rpc import JsonRpcHandler, JsonRpcRequest
 
 
 class HttpMcpServer:

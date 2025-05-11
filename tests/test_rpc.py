@@ -1,9 +1,9 @@
 """Tests for the JSON-RPC handler."""
 
 import pytest
-from unittest.mock import patch, Mock
+from unittest.mock import Mock
 
-from codebase_examiner.rpc import JsonRpcHandler, JsonRpcRequest, JsonRpcError
+from codebase_examiner.mcp.rpc import JsonRpcHandler, JsonRpcRequest
 from mojentic.llm.tools.llm_tool import LLMTool
 
 

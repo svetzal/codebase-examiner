@@ -1,11 +1,9 @@
 import json
-import sys
-import pytest
 from io import StringIO
 from unittest.mock import patch, Mock
 
-from codebase_examiner.mcp_stdio import StdioMcpServer
-from codebase_examiner.rpc import JsonRpcHandler, JsonRpcRequest
+from codebase_examiner.mcp.mcp_stdio import StdioMcpServer
+from codebase_examiner.mcp.rpc import JsonRpcHandler
 
 
 class TestStdioMcpServer:
