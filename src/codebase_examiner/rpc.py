@@ -4,15 +4,12 @@ This module provides a common JSONRPC infrastructure that can be used by differe
 transport mechanisms (HTTP, STDIO, etc.) to handle RPC requests.
 """
 
-import os
 from importlib.metadata import version
-from pathlib import Path
 from typing import Dict, Any, List, Optional, Set, Union, Callable
 
 from pydantic import BaseModel, Field
 
-from codebase_examiner.core.code_inspector import inspect_codebase
-from codebase_examiner.core.doc_generator import generate_documentation
+from codebase_examiner.tools import ToolRegistry, ExaminerTool
 
 
 class JsonRpcRequest(BaseModel):
@@ -46,6 +43,11 @@ class JsonRpcHandler:
     def __init__(self):
         """Initialize the JSON-RPC handler."""
         self.should_exit = False
+        self.tool_registry = ToolRegistry()
+
+        # Register default tools
+        self.tool_registry.register_tool(ExaminerTool())
+
         self.methods = {
             "initialize": self._handle_initialize,
             "shutdown": self._handle_shutdown,
@@ -192,12 +194,7 @@ class JsonRpcHandler:
             Dict[str, Any]: The result
         """
         return {
-            "tools": [
-                {
-                    "name": "examine",
-                    "description": "Examine a Python codebase and generate documentation"
-                }
-            ]
+            "tools": self.tool_registry.list_tools()
         }
 
     def _handle_tools_call(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -212,44 +209,8 @@ class JsonRpcHandler:
         tool_name = params.get("name")
         tool_arguments = params.get("arguments", {})
 
-        if tool_name == "examine":
-            return self._handle_examine(tool_arguments)
-        else:
+        if not self.tool_registry.has_tool(tool_name):
             raise JsonRpcError(-32601, f"Tool not found: {tool_name}")
 
-    def _handle_examine(self, params: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle an examine request.
-
-        Args:
-            params (Dict[str, Any]): The examination request parameters
-
-        Returns:
-            Dict[str, Any]: The examination result
-        """
-        try:
-            # Extract parameters from request
-            directory = params.get("directory", ".")
-            exclude_dirs = set(params.get("exclude_dirs", [".venv", ".git", "__pycache__", "tests", "build", "dist"]))
-            format_type = params.get("format", "markdown")
-            include_dotfiles = params.get("include_dotfiles", False)
-
-            # Convert directory to absolute path if it's relative
-            if not os.path.isabs(directory):
-                directory = str(Path(directory).resolve())
-
-            # Inspect the codebase
-            modules = inspect_codebase(directory, exclude_dirs, not include_dotfiles)
-
-            # Generate documentation
-            documentation = generate_documentation(modules, format_type)
-
-            return {
-                "status": "success",
-                "documentation": documentation,
-                "modules_found": len(modules)
-            }
-        except Exception as e:
-            return {
-                "status": "error",
-                "message": str(e)
-            }
+        tool = self.tool_registry.get_tool(tool_name)
+        return tool.execute(tool_arguments)
