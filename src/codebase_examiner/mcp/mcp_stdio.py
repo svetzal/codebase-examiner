@@ -2,7 +2,7 @@
 
 import json
 import sys
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from pydantic import ValidationError
 
@@ -45,6 +45,17 @@ class StdioMcpServer:
         """
         sys.stdout.write(json.dumps(response) + "\n")
         sys.stdout.flush()
+
+    def _write_info(self, message: str, status: Optional[str] = "info") -> None:
+        """Write an informational message to standard error.
+
+        Args:
+            message (str): The message to write
+            status (Optional[str]): The status to include in the message
+        """
+        info = {"status": status, "message": message}
+        sys.stderr.write(json.dumps(info) + "\n")
+        sys.stderr.flush()
 
     def _handle_ping(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """Handle a ping request.
@@ -121,8 +132,8 @@ class StdioMcpServer:
 
     def run(self) -> None:
         """Run the STDIO MCP server loop."""
-        # Output an initialization message
-        self._write_response({"status": "ready", "message": "STDIO MCP server ready"})
+        # Output an initialization message to stderr
+        self._write_info("STDIO MCP server ready", "ready")
 
         while not self.should_exit:
             try:
