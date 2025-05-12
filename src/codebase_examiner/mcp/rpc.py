@@ -58,6 +58,8 @@ class JsonRpcHandler:
             "exit": self._handle_exit,
             "tools/list": self._handle_tools_list,
             "tools/call": self._handle_tools_call,
+            "resources/list": self._handle_resources_list,
+            "prompts/list": self._handle_prompts_list,
         }
 
     def handle_request(self, request: JsonRpcRequest) -> Dict[str, Any]:
@@ -227,3 +229,31 @@ class JsonRpcHandler:
             raise JsonRpcError(-32601, f"Tool not found: {tool_name}")
 
         return tool.run(**tool_arguments)
+
+    def _handle_resources_list(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle the resources/list method.
+
+        Args:
+            params (Dict[str, Any]): The method parameters
+
+        Returns:
+            Dict[str, Any]: The result with empty resources list
+        """
+        return {
+            "resources": [],
+            "nextCursor": None
+        }
+
+    def _handle_prompts_list(self, params: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle the prompts/list method.
+
+        Args:
+            params (Dict[str, Any]): The method parameters
+
+        Returns:
+            Dict[str, Any]: The result with empty prompts list
+        """
+        return {
+            "prompts": [],
+            "nextCursor": None
+        }

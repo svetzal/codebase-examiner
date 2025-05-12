@@ -192,3 +192,43 @@ class TestJsonRpcHandler:
         assert "error" in response
         assert response["error"]["code"] == -32601
         assert "Tool not found" in response["error"]["message"]
+
+    def test_should_handle_resources_list_request(self, mock_tool):
+        """Test handling of resources/list request."""
+        handler = JsonRpcHandler(tools=[mock_tool])
+        request = JsonRpcRequest(
+            jsonrpc="2.0",
+            id=14,
+            method="resources/list",
+            params={}
+        )
+
+        response = handler.handle_request(request)
+
+        assert response["jsonrpc"] == "2.0"
+        assert response["id"] == 14
+        assert "result" in response
+        assert "resources" in response["result"]
+        assert isinstance(response["result"]["resources"], list)
+        assert len(response["result"]["resources"]) == 0
+        assert response["result"]["nextCursor"] is None
+
+    def test_should_handle_prompts_list_request(self, mock_tool):
+        """Test handling of prompts/list request."""
+        handler = JsonRpcHandler(tools=[mock_tool])
+        request = JsonRpcRequest(
+            jsonrpc="2.0",
+            id=15,
+            method="prompts/list",
+            params={}
+        )
+
+        response = handler.handle_request(request)
+
+        assert response["jsonrpc"] == "2.0"
+        assert response["id"] == 15
+        assert "result" in response
+        assert "prompts" in response["result"]
+        assert isinstance(response["result"]["prompts"], list)
+        assert len(response["result"]["prompts"]) == 0
+        assert response["result"]["nextCursor"] is None
