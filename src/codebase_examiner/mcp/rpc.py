@@ -54,7 +54,6 @@ class JsonRpcHandler:
 
         self.methods = {
             "initialize": self._handle_initialize,
-            "shutdown": self._handle_shutdown,
             "exit": self._handle_exit,
             "tools/list": self._handle_tools_list,
             "tools/call": self._handle_tools_call,
@@ -165,17 +164,6 @@ class JsonRpcHandler:
             "protocolVersion": protocol_version
         }
 
-    def _handle_shutdown(self, params: Dict[str, Any]) -> None:
-        """Handle the shutdown method.
-
-        Args:
-            params (Dict[str, Any]): The method parameters
-
-        Returns:
-            None: No result
-        """
-        self.should_exit = True
-        return None
 
     def _handle_exit(self, params: Dict[str, Any]) -> None:
         """Handle the exit method.

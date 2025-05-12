@@ -117,23 +117,6 @@ class TestJsonRpcHandler:
             format_type="markdown"
         )
 
-    def test_should_handle_shutdown_request(self, mock_tool):
-        """Test handling of shutdown request."""
-        handler = JsonRpcHandler(tools=[mock_tool])
-        request = JsonRpcRequest(
-            jsonrpc="2.0",
-            id=10,
-            method="shutdown",
-            params={}
-        )
-
-        response = handler.handle_request(request)
-
-        assert response["jsonrpc"] == "2.0"
-        assert response["id"] == 10
-        assert "result" in response
-        assert response["result"] is None
-        assert handler.should_exit is True
 
     def test_should_handle_exit_request(self, mock_tool):
         """Test handling of exit request."""
