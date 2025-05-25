@@ -15,7 +15,8 @@ from codebase_examiner.core.doc_generator import (
 )
 
 
-def create_test_module_documentation():
+@pytest.fixture
+def test_modules():
     """Create test module documentation for testing."""
     # Create function documentation
     func_doc = FunctionDocumentation(
@@ -106,65 +107,78 @@ def create_test_module_documentation():
     return [module_doc]
 
 
-def test_generate_markdown_documentation():
-    """Test generating markdown documentation."""
-    modules = create_test_module_documentation()
-    markdown = generate_markdown_documentation(modules)
+class DescribeDocGenerator:
+    """Tests for the DocGenerator component."""
     
-    # Basic checks for the markdown output
-    assert "# Codebase Documentation" in markdown
-    assert "## Table of Contents" in markdown
-    assert "## Module: test_module" in markdown
-    assert "### Functions" in markdown
-    assert "#### `test_function" in markdown
-    assert "**Parameters:**" in markdown
-    assert "- `param1` (int):" in markdown
-    assert "- `param2` (str), default: `'default'`:" in markdown
-    assert "**Returns:**" in markdown
-    assert "(bool) True if successful, False otherwise." in markdown
-    assert "### Classes" in markdown
-    assert "#### `TestClass`" in markdown
-    assert "**Methods:**" in markdown
-    assert "##### `__init__" in markdown
-    assert "##### `test_method" in markdown
+    def it_should_generate_markdown_documentation(self, test_modules):
+        """Test generating markdown documentation."""
+        markdown = generate_markdown_documentation(test_modules)
+        
+        # Basic checks for the markdown output
+        assert "# Codebase Documentation" in markdown
+        assert "## Table of Contents" in markdown
+        assert "## Module: test_module" in markdown
+        assert "### Functions" in markdown
+        assert "#### `test_function" in markdown
+        assert "**Parameters:**" in markdown
+        assert "- `param1` (int):" in markdown
+        assert "- `param2` (str), default: `'default'`:" in markdown
+        assert "**Returns:**" in markdown
+        assert "(bool) True if successful, False otherwise." in markdown
+        assert "### Classes" in markdown
+        assert "#### `TestClass`" in markdown
+        assert "**Methods:**" in markdown
+        assert "##### `__init__" in markdown
+        assert "##### `test_method" in markdown
 
+    def it_should_generate_json_documentation(self, test_modules):
+        """Test generating JSON documentation."""
+        json_str = generate_json_documentation(test_modules)
+        
+        # Parse the JSON and verify structure
+        json_data = json.loads(json_str)
+        assert isinstance(json_data, list)
+        assert len(json_data) == 1
+        
+        module = json_data[0]
+        assert module["name"] == "test_module"
+        assert module["docstring"] == "Test module docstring."
+        assert module["file_path"] == "/path/to/module.py"
+        
+        assert len(module["functions"]) == 1
+        function = module["functions"][0]
+        assert function["name"] == "test_function"
+        assert len(function["parameters"]) == 2
+        
+        assert len(module["classes"]) == 1
+        cls = module["classes"][0]
+        assert cls["name"] == "TestClass"
+        assert len(cls["methods"]) == 2
 
-def test_generate_json_documentation():
-    """Test generating JSON documentation."""
-    modules = create_test_module_documentation()
-    json_str = generate_json_documentation(modules)
-    
-    # Parse the JSON and verify structure
-    json_data = json.loads(json_str)
-    assert isinstance(json_data, list)
-    assert len(json_data) == 1
-    
-    module = json_data[0]
-    assert module["name"] == "test_module"
-    assert module["docstring"] == "Test module docstring."
-    assert module["file_path"] == "/path/to/module.py"
-    
-    assert len(module["functions"]) == 1
-    function = module["functions"][0]
-    assert function["name"] == "test_function"
-    assert len(function["parameters"]) == 2
-    
-    assert len(module["classes"]) == 1
-    cls = module["classes"][0]
-    assert cls["name"] == "TestClass"
-    assert len(cls["methods"]) == 2
+    def it_should_generate_documentation(self, test_modules):
+        """Test the main generate_documentation function."""
+        # Test markdown format
+        markdown = generate_documentation(test_modules, "markdown")
+        assert "# Codebase Documentation" in markdown
+        
+        # Test JSON format
+        json_str = generate_documentation(test_modules, "json")
+        json_data = json.loads(json_str)
+        assert isinstance(json_data, list)
+        assert len(json_data) == 1
 
+    def it_should_support_custom_sections(self, test_modules):
+        """Test generating markdown documentation with custom sections."""
+        # Import section generators
+        from codebase_examiner.core.section_generators import TitleSection, ModulesSection
 
-def test_generate_documentation():
-    """Test the main generate_documentation function."""
-    modules = create_test_module_documentation()
-    
-    # Test markdown format
-    markdown = generate_documentation(modules, "markdown")
-    assert "# Codebase Documentation" in markdown
-    
-    # Test JSON format
-    json_str = generate_documentation(modules, "json")
-    json_data = json.loads(json_str)
-    assert isinstance(json_data, list)
-    assert len(json_data) == 1
+        # Generate only title and modules sections
+        markdown = generate_markdown_documentation(
+            test_modules,
+            sections=[TitleSection(), ModulesSection()]
+        )
+        
+        # Should include title and modules, but not table of contents
+        assert markdown.startswith("# Codebase Documentation")
+        assert "## Table of Contents" not in markdown
+        assert "## Module: test_module" in markdown

@@ -58,8 +58,8 @@ Users can install it with pipx to make "codebase-examiner" available as a comman
 ### General Rules
 1. Use pytest for all testing
 2. Test files:
-   - Named with prefix `test_` (e.g., test_file_finder.py)
-   - Located in the tests directory, mirroring the src structure
+   - Named with suffix `_spec` (e.g., file_finder_spec.py)
+   - Located beside the implementation file
 3. Code style:
    - Max line length: 100 (as set in pyproject.toml)
    - Max complexity: 10
@@ -72,7 +72,7 @@ We follow a Behavior-Driven Development (BDD) style using the "Describe/should" 
 #### Test Structure
 1. Tests are organized in classes that start with "Describe" followed by the component name
 2. Test methods:
-   - Start with "should_"
+   - Start with "it_should_"
    - Describe the expected behavior in plain English
    - Follow the Arrange/Act/Assert pattern (separated by blank lines)
 3. Do not use comments (eg Arrange, Act, Assert) to delineate test sections - just use a blank line
@@ -118,6 +118,9 @@ class DescribeSmartMemory:
         assert isinstance(memory, SmartMemory)
         assert memory.chroma == mock_chroma_gateway
 ```
+
+## Documentation
+
 
 ## Release Process
 

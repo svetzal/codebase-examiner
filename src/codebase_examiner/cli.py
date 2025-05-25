@@ -5,11 +5,18 @@ from pathlib import Path
 from typing import Optional, List
 
 import typer
+from mojentic_mcp.rpc import JsonRpcHandler
 from rich.console import Console
 from rich.markdown import Markdown
 
 from codebase_examiner.core.code_inspector import inspect_codebase
-from codebase_examiner.core.doc_generator import generate_documentation
+from codebase_examiner.core.doc_generator import generate_documentation, generate_markdown_documentation
+from codebase_examiner.core.examiner_tool import ExaminerTool
+from codebase_examiner.core.section_generators import (
+    TitleSection,
+    TableOfContentsSection,
+    ModulesSection,
+)
 
 app = typer.Typer(help="Codebase Examiner - A tool to analyze Python codebases and generate documentation")
 console = Console(stderr=True)  # Redirect console output to stderr
@@ -23,6 +30,12 @@ def examine(
         exclude: List[str] = typer.Option([".venv"], "--exclude", "-e", help="Directories to exclude"),
         include_dotfiles: bool = typer.Option(False, "--include-dotfiles",
                                               help="Include files and directories starting with a dot"),
+        sections: Optional[List[str]] = typer.Option(
+            None,
+            "--section",
+            "-s",
+            help="Sections to include in order (title, toc, modules)",
+        ),
 ):
     """Examine a Python codebase and generate documentation."""
     console.print(f"[bold blue]Examining codebase in directory: {directory}[/bold blue]")
@@ -41,7 +54,21 @@ def examine(
 
         # Generate documentation
         console.print(f"[bold]Generating {output_format} documentation...[/bold]")
-        documentation = generate_documentation(modules, output_format)
+        if output_format.lower() == "markdown" and sections:
+            # Map section names to generators
+            available = {
+                "title": TitleSection,
+                "toc": TableOfContentsSection,
+                "modules": ModulesSection,
+            }
+            try:
+                gens = [available[name.lower()]() for name in sections]
+            except KeyError as e:
+                console.print(f"[bold red]Error: Unknown section '{e.args[0]}'[/bold red]")
+                raise
+            documentation = generate_markdown_documentation(modules, gens)
+        else:
+            documentation = generate_documentation(modules, output_format)
 
         # Output the documentation
         if output_file:
@@ -76,9 +103,7 @@ def serve(
     """Run the Codebase Examiner as an MCP server over HTTP."""
 
     try:
-        from codebase_examiner.mcp.mcp_http import start_server
-        from codebase_examiner.mcp.rpc import JsonRpcHandler
-        from codebase_examiner.core.examiner_tool import ExaminerTool
+        from mojentic_mcp.mcp_http import start_server
         console.print(f"[bold blue]Starting MCP server on port {port}...[/bold blue]")
         rpc_handler = JsonRpcHandler(tools=[ExaminerTool()])
         start_server(port, rpc_handler)
@@ -97,9 +122,7 @@ def serve_stdio():
     """Run the Codebase Examiner as an MCP server over standard input/output."""
 
     try:
-        from codebase_examiner.mcp.mcp_stdio import start_server
-        from codebase_examiner.mcp.rpc import JsonRpcHandler
-        from codebase_examiner.core.examiner_tool import ExaminerTool
+        from mojentic_mcp.mcp_stdio import start_server
         console.print("[bold blue]Starting STDIO MCP server...[/bold blue]")
         # This print must be the last console output before the server takes over stdout
         console.print("[bold green]Server ready to receive commands on stdin[/bold green]")

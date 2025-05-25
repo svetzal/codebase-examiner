@@ -64,6 +64,12 @@ Exclude additional directories:
 codebase-examiner examine --exclude .venv --exclude tests --exclude docs
 ```
 
+Generate markdown with only specific sections (e.g., title and modules):
+
+```bash
+codebase-examiner examine --section title --section modules
+```
+
 ### HTTP Server
 
 Start the HTTP server:
