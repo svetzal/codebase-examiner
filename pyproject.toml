@@ -23,7 +23,7 @@ dependencies = [
     "rich>=13.3.0", # For rich terminal output
     "anthropic>=0.2.0", # For MCP server capabilities
     "mojentic",
-    "mojentic-mcp @ file:///Users/svetzal/Work/Personal/ml/mojentic-mcp",
+    "mojentic-mcp>=0.7.0",
 ]
 
 [project.optional-dependencies]
