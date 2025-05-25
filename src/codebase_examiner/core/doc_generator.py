@@ -1,6 +1,7 @@
 """Module for generating documentation from code inspection results."""
 
 import json
+import enum
 from typing import List, Optional, Union
 
 from codebase_examiner.core.models import (
@@ -63,9 +64,17 @@ def generate_json_documentation(modules_or_result: Union[List[ModuleDocumentatio
     else:
         modules = modules_or_result
         
-    # Convert Pydantic models to dictionaries
+    # Convert Pydantic models to dictionaries with special handling for enums
     json_data = [module.model_dump() for module in modules]
-    return json.dumps(json_data, indent=2)
+    
+    # Use a custom encoder class that handles our Capability enum
+    class EnumEncoder(json.JSONEncoder):
+        def default(self, obj):
+            if isinstance(obj, enum.Enum):
+                return obj.value
+            return super().default(obj)
+    
+    return json.dumps(json_data, indent=2, cls=EnumEncoder)
 
 
 def generate_documentation(

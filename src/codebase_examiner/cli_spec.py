@@ -19,26 +19,43 @@ def runner():
 
 
 @pytest.fixture
-def mock_inspect_codebase():
-    """Mock the inspect_codebase function."""
-    with patch("codebase_examiner.cli.inspect_codebase") as mock:
-        # Create a simple mock module
+def mock_inspector():
+    """Mock the CodebaseInspector class."""
+    with patch("codebase_examiner.cli.CodebaseInspector") as mock_class:
+        mock_instance = MagicMock()
+        mock_class.return_value = mock_instance
+        
+        # Create a mock module for the result
+        from codebase_examiner.core.models import ExtractionResult, ModuleDocumentation
         module_doc = ModuleDocumentation(
             name="test_module",
             docstring="Test module docstring.",
             file_path="/path/to/module.py",
+            extractor_name="python",
             functions=[],
             classes=[]
         )
-        mock.return_value = [module_doc]
-        yield mock
+        
+        # Create a mock ExtractionResult
+        mock_result = ExtractionResult(
+            extractors_used=["python"],
+            file_count=1,
+            data=[module_doc]
+        )
+        
+        # Set up the mock instance to return our mock result
+        mock_instance.inspect_directory.return_value = mock_result
+        
+        yield mock_class, mock_instance
 
 
 class DescribeCLI:
     """Tests for the CLI component."""
     
-    def it_should_execute_examine_command(self, runner, mock_inspect_codebase):
+    def it_should_execute_examine_command(self, runner, mock_inspector):
         """Test the examine command."""
+        mock_class, mock_instance = mock_inspector
+        
         # Test with default options (output to console, markdown format)
         result = runner.invoke(app, ["examine"])
         
@@ -49,10 +66,16 @@ class DescribeCLI:
         assert "# Codebase Documentation" in result.stdout
 
         # Check that the function was called with the right arguments
-        mock_inspect_codebase.assert_called_once_with(".", {".venv"})
+        mock_instance.inspect_directory.assert_called_once_with(
+            directory=".", 
+            exclude_dirs={".venv"},
+            exclude_dotfiles=True
+        )
 
-    def it_should_support_json_format(self, runner, mock_inspect_codebase):
+    def it_should_support_json_format(self, runner, mock_inspector):
         """Test the examine command with format option."""
+        mock_class, mock_instance = mock_inspector
+        
         # Test with JSON format
         result = runner.invoke(app, ["examine", "--format", "json"])
         
@@ -69,8 +92,10 @@ class DescribeCLI:
         assert len(json_data) == 1
         assert json_data[0]["name"] == "test_module"
 
-    def it_should_write_to_output_file(self, runner, mock_inspect_codebase):
+    def it_should_write_to_output_file(self, runner, mock_inspector):
         """Test the examine command with output file."""
+        mock_class, mock_instance = mock_inspector
+        
         with tempfile.TemporaryDirectory() as tmpdirname:
             output_file = Path(tmpdirname) / "output.md"
 
