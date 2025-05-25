@@ -3,7 +3,7 @@
 import abc
 from typing import List
 
-from codebase_examiner.core.code_inspector import ModuleDocumentation
+from codebase_examiner.core.models import ModuleDocumentation
 
 
 class SectionGenerator(abc.ABC):
