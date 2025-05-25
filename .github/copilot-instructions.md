@@ -119,6 +119,9 @@ class DescribeSmartMemory:
         assert memory.chroma == mock_chroma_gateway
 ```
 
+## Documentation
+
+
 ## Release Process
 
 This project follows [Semantic Versioning](https://semver.org/) (SemVer) for version numbering. The version format is MAJOR.MINOR.PATCH, where:
