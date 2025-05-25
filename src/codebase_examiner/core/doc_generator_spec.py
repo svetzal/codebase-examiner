@@ -3,11 +3,13 @@
 import json
 import pytest
 
-from codebase_examiner.core.code_inspector import (
+from codebase_examiner.core.models import (
     ModuleDocumentation,
     ClassDocumentation,
-    FunctionDocumentation
+    FunctionDocumentation,
+    ExtractionResult
 )
+from codebase_examiner.core.extractors.base import Capability
 from codebase_examiner.core.doc_generator import (
     generate_markdown_documentation,
     generate_json_documentation,
@@ -39,7 +41,10 @@ def test_modules():
         },
         return_type="bool",
         return_description="True if successful, False otherwise.",
-        module_path="/path/to/module.py"
+        module_path="/path/to/module.py",
+        file_path="/path/to/module.py",
+        extractor_name="python",
+        capability=Capability.CODE_STRUCTURE
     )
     
     # Create class documentation
@@ -67,7 +72,10 @@ def test_modules():
                 },
                 return_type=None,
                 return_description=None,
-                module_path="/path/to/module.py"
+                module_path="/path/to/module.py",
+                file_path="/path/to/module.py",
+                extractor_name="python",
+                capability=Capability.CODE_STRUCTURE
             ),
             FunctionDocumentation(
                 name="test_method",
@@ -89,10 +97,16 @@ def test_modules():
                 },
                 return_type="float",
                 return_description="The result of the calculation.",
-                module_path="/path/to/module.py"
+                module_path="/path/to/module.py",
+                file_path="/path/to/module.py",
+                extractor_name="python",
+                capability=Capability.CODE_STRUCTURE
             )
         ],
-        module_path="/path/to/module.py"
+        module_path="/path/to/module.py",
+        file_path="/path/to/module.py",
+        extractor_name="python",
+        capability=Capability.CODE_STRUCTURE
     )
     
     # Create module documentation
@@ -101,10 +115,22 @@ def test_modules():
         docstring="Test module docstring.",
         file_path="/path/to/module.py",
         functions=[func_doc],
-        classes=[class_doc]
+        classes=[class_doc],
+        extractor_name="python",
+        capability=Capability.CODE_STRUCTURE
     )
     
     return [module_doc]
+
+
+@pytest.fixture
+def test_extraction_result(test_modules):
+    """Create test extraction result for testing."""
+    return ExtractionResult(
+        extractors_used=["python"],
+        file_count=1,
+        data=test_modules
+    )
 
 
 class DescribeDocGenerator:
@@ -182,3 +208,16 @@ class DescribeDocGenerator:
         assert markdown.startswith("# Codebase Documentation")
         assert "## Table of Contents" not in markdown
         assert "## Module: test_module" in markdown
+        
+    def it_should_handle_extraction_result(self, test_extraction_result):
+        """Test handling ExtractionResult objects."""
+        # Test markdown format
+        markdown = generate_documentation(test_extraction_result, "markdown")
+        assert "# Codebase Documentation" in markdown
+        assert "## Module: test_module" in markdown
+        
+        # Test JSON format
+        json_str = generate_documentation(test_extraction_result, "json")
+        json_data = json.loads(json_str)
+        assert isinstance(json_data, list)
+        assert len(json_data) == 1

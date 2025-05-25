@@ -2,14 +2,14 @@
 
 import sys
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional, List, Set
 
 import typer
 from mojentic_mcp.rpc import JsonRpcHandler
 from rich.console import Console
 from rich.markdown import Markdown
 
-from codebase_examiner.core.code_inspector import inspect_codebase
+from codebase_examiner.core.code_inspector import CodebaseInspector
 from codebase_examiner.core.doc_generator import generate_documentation, generate_markdown_documentation
 from codebase_examiner.core.examiner_tool import ExaminerTool
 from codebase_examiner.core.section_generators import (
@@ -41,16 +41,18 @@ def examine(
     console.print(f"[bold blue]Examining codebase in directory: {directory}[/bold blue]")
 
     # Convert exclude list to set
-    exclude_dirs = set(exclude)
+    exclude_dirs: Set[str] = set(exclude)
 
     try:
         # Inspect the codebase
         console.print("[bold]Finding and analyzing Python files...[/bold]")
-        # For backward compatibility with tests
-        if include_dotfiles:
-            modules = inspect_codebase(directory, exclude_dirs)
-        else:
-            modules = inspect_codebase(directory, exclude_dirs)
+        inspector = CodebaseInspector()
+        result = inspector.inspect_directory(
+            directory=directory,
+            exclude_dirs=exclude_dirs,
+            exclude_dotfiles=not include_dotfiles
+        )
+        console.print(f"[green]Found {len(result.get_modules())} modules using {', '.join(result.extractors_used)} extractors[/green]")
 
         # Generate documentation
         console.print(f"[bold]Generating {output_format} documentation...[/bold]")
@@ -66,9 +68,9 @@ def examine(
             except KeyError as e:
                 console.print(f"[bold red]Error: Unknown section '{e.args[0]}'[/bold red]")
                 raise
-            documentation = generate_markdown_documentation(modules, gens)
+            documentation = generate_markdown_documentation(result, gens)
         else:
-            documentation = generate_documentation(modules, output_format)
+            documentation = generate_documentation(result, output_format)
 
         # Output the documentation
         if output_file:

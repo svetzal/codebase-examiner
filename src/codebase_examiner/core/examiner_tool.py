@@ -1,10 +1,10 @@
 import os
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Set
 
 from mojentic.llm.tools.llm_tool import LLMTool
 
-from codebase_examiner.core.code_inspector import inspect_codebase
+from codebase_examiner.core.code_inspector import CodebaseInspector
 from codebase_examiner.core.doc_generator import generate_documentation
 
 
@@ -41,15 +41,21 @@ class ExaminerTool(LLMTool):
                 directory = str(Path(directory).resolve())
 
             # Inspect the codebase
-            modules = inspect_codebase(directory, set(exclude_dirs), not include_dotfiles)
+            inspector = CodebaseInspector()
+            result = inspector.inspect_directory(
+                directory=directory,
+                exclude_dirs=set(exclude_dirs),
+                exclude_dotfiles=not include_dotfiles
+            )
 
             # Generate documentation
-            documentation = generate_documentation(modules, format_type)
+            documentation = generate_documentation(result, format_type)
 
             return {
                 "status": "success",
                 "documentation": documentation,
-                "modules_found": len(modules)
+                "modules_found": len(result.get_modules()),
+                "extractors_used": result.extractors_used
             }
         except Exception as e:
             return {

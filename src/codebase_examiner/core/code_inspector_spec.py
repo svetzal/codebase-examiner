@@ -10,10 +10,14 @@ import pytest
 from codebase_examiner.core.code_inspector import (
     parse_google_docstring,
     inspect_module,
+    CodebaseInspector
+)
+from codebase_examiner.core.models import (
     ModuleDocumentation,
     ClassDocumentation,
     FunctionDocumentation
 )
+from codebase_examiner.core.extractors.base import Capability
 
 
 class DescribeCodeInspector:
@@ -225,3 +229,41 @@ class TestClass:
             assert "factor" in test_method.parameters
             assert test_method.parameters["factor"]["annotation"] == "<class 'float'>"
             assert test_method.return_type == "<class 'float'>"
+
+
+class DescribeCodebaseInspector:
+    """Tests for the CodebaseInspector component."""
+    
+    def it_should_inspect_directory(self, mocker):
+        """Test inspecting a directory."""
+        # Mock dependencies
+        mock_registry = mocker.MagicMock()
+        mock_extractor = mocker.MagicMock()
+        mock_extractor.name = "python"
+        mock_extractor.extract.return_value = ModuleDocumentation(
+            name="test_module",
+            docstring="Test module docstring.",
+            file_path="/path/to/module.py",
+            extractor_name="python",
+            capability=Capability.CODE_STRUCTURE
+        )
+        mock_registry.get_extractors_for_file.return_value = [mock_extractor]
+        
+        # Mock find_python_files
+        mocker.patch(
+            "codebase_examiner.core.file_finder.find_python_files",
+            return_value=[Path("/path/to/module.py")]
+        )
+        
+        # Create inspector with mock registry
+        inspector = CodebaseInspector(mock_registry)
+        
+        # Inspect directory
+        result = inspector.inspect_directory(".", set([".venv"]), True)
+        
+        # Verify result
+        assert result.file_count == 1
+        assert result.extractors_used == ["python"]
+        assert len(result.data) == 1
+        assert isinstance(result.data[0], ModuleDocumentation)
+        assert result.data[0].name == "test_module"
