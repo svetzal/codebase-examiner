@@ -83,8 +83,15 @@ class PythonExtractor(BaseExtractor):
         args_match = re.search(r'Args:(.*?)(?:Returns:|Raises:|$)', docstring, re.DOTALL)
         if args_match:
             args_section = args_match.group(1).strip()
-            # Parse each parameter
-            param_matches = re.finditer(r'(\w+)\s+\(([^)]+)\):\s+(.*?)(?=\w+\s+\([^)]+\):|$)', args_section, re.DOTALL)
+            # Parse each parameter. The original regex incorrectly captured the
+            # lookahead causing malformed parsing when multiple parameters were
+            # documented. The corrected pattern looks for a new parameter
+            # definition on a new line or the end of the section.
+            param_matches = re.finditer(
+                r'(\w+)\s+\(([^)]+)\):\s+(.*?)(?=\n\w+\s+\([^)]+\):|$)',
+                args_section,
+                re.DOTALL,
+            )
             for match in param_matches:
                 param_name = match.group(1)
                 param_type = match.group(2).strip()
