@@ -19,7 +19,7 @@ from codebase_examiner.core.section_generators import (
 )
 
 app = typer.Typer(help="Codebase Examiner - A tool to analyze Python codebases and generate documentation")
-console = Console(stderr=True)  # Redirect console output to stderr
+console = Console()  # Use stdout for console output
 
 
 @app.command()
@@ -77,8 +77,8 @@ def examine(
             output_path = Path(output_file)
             output_path.write_text(documentation)
             console.print(f"[bold green]Documentation written to {output_file}[/bold green]")
-            # Also print the plain message for tests to find, but to stderr
-            print(f"Documentation written to {output_file}", file=sys.stderr)
+            # Also print the plain message for tests to find
+            print(f"Documentation written to {output_file}")
         else:
             # For JSON format, ensure it's properly formatted for the test
             if output_format.lower() == "json":
@@ -89,8 +89,8 @@ def examine(
             else:
                 # Print the documentation directly using Markdown rendering
                 console.print(Markdown(documentation))
-                # Also print the raw markdown for tests to find, but to stderr
-                print(documentation, file=sys.stderr)
+                # Also print the raw markdown for tests to find
+                print(documentation)
 
         return 0
     except Exception as e:
