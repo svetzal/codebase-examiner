@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple, Set, Union
 
 # For backward compatibility
+from codebase_examiner.core.filesystem_gateway import FileSystemGateway
 from codebase_examiner.core.models import (
     FunctionDocumentation,
     ClassDocumentation,
@@ -197,19 +198,22 @@ def extract_class_info_from_ast(node: ast.ClassDef, module_path: str) -> ClassDo
 
 class CodebaseInspector:
     """Class to orchestrate the inspection process.
-    
+
     This class coordinates the analysis of files in a codebase using
     registered extractors to generate comprehensive documentation.
     """
-    
-    def __init__(self, registry=None):
+
+    def __init__(self, registry=None, fs_gateway=None):
         """Initialize the inspector with a registry.
-        
+
         Args:
             registry: The extractor registry to use. If None, uses the default registry.
+            fs_gateway (Optional[FileSystemGateway]): The filesystem gateway to use.
+                If None, a new instance will be created.
         """
         self._registry = registry or get_registry()
-    
+        self._fs_gateway = fs_gateway or FileSystemGateway()
+
     def inspect_directory(
             self,
             directory: str = ".",
@@ -217,27 +221,27 @@ class CodebaseInspector:
             exclude_dotfiles: bool = True
     ) -> ExtractionResult:
         """Inspect a directory and extract information from all relevant files.
-        
+
         Args:
             directory (str): The directory to inspect. Defaults to the current directory.
             exclude_dirs (Set[str]): Set of directory names to exclude.
             exclude_dotfiles (bool): Whether to exclude dotfiles. Defaults to True.
-            
+
         Returns:
             ExtractionResult: The combined results from all extractors
         """
         from codebase_examiner.core.file_finder import find_python_files
-        
+
         # For now, we only handle Python files
-        files = find_python_files(directory, exclude_dirs, exclude_dotfiles)
+        files = find_python_files(directory, exclude_dirs, exclude_dotfiles, self._fs_gateway)
         return self.inspect_files(files)
-    
+
     def inspect_files(self, files: List[Path]) -> ExtractionResult:
         """Inspect a list of files using appropriate extractors.
-        
+
         Args:
             files (List[Path]): The files to inspect
-            
+
         Returns:
             ExtractionResult: The combined results from all extractors
         """
@@ -245,36 +249,37 @@ class CodebaseInspector:
             file_count=len(files),
             extractors_used=[]
         )
-        
+
         for file_path in files:
             extractors = self._registry.get_extractors_for_file(file_path)
-            
+
             # Track which extractors were used
             for extractor in extractors:
                 if extractor.name not in result.extractors_used:
                     result.extractors_used.append(extractor.name)
-            
+
             # Process the file with each compatible extractor
             for extractor in extractors:
                 try:
-                    extracted_data = extractor.extract(file_path)
+                    extracted_data = extractor.extract(file_path, self._fs_gateway)
                     if isinstance(extracted_data, list):
                         result.data.extend(extracted_data)
                     else:
                         result.data.append(extracted_data)
                 except Exception as e:
                     print(f"Error using {extractor.name} on {file_path}: {e}")
-        
+
         return result
 
 
 def inspect_codebase(
         directory: str = ".",
         exclude_dirs: Set[str] = None,
-        exclude_dotfiles: bool = True
+        exclude_dotfiles: bool = True,
+        fs_gateway: Optional[FileSystemGateway] = None
 ) -> Union[List[ModuleDocumentation], ExtractionResult]:
     """Inspect a Python codebase and extract documentation.
-    
+
     This function is maintained for backward compatibility. It now uses the
     new CodebaseInspector class internally to leverage the modular architecture.
 
@@ -283,13 +288,15 @@ def inspect_codebase(
         exclude_dirs (Set[str], optional): Set of directory names to exclude from the search.
         exclude_dotfiles (bool): Whether to exclude all files and directories starting with a dot.
             Defaults to True.
+        fs_gateway (Optional[FileSystemGateway]): The filesystem gateway to use.
+            If None, a new instance will be created.
 
     Returns:
         List[ModuleDocumentation]: Documentation for all modules in the codebase.
     """
-    inspector = CodebaseInspector()
+    inspector = CodebaseInspector(fs_gateway=fs_gateway)
     result = inspector.inspect_directory(directory, exclude_dirs, exclude_dotfiles)
-    
+
     # For backward compatibility, return a list of module documentation
     modules = result.get_modules()
     return modules

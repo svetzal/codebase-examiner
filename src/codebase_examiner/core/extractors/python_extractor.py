@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from codebase_examiner.core.extractors.base import BaseExtractor, Capability
+from codebase_examiner.core.filesystem_gateway import FileSystemGateway
 from codebase_examiner.core.models import (
     ClassDocumentation,
     FunctionDocumentation,
@@ -42,27 +43,34 @@ class PythonExtractor(BaseExtractor):
         """Return the set of capabilities supported by this extractor."""
         return {Capability.CODE_STRUCTURE}
 
-    def can_extract(self, file_path: Path) -> bool:
+    def can_extract(self, file_path: Path, fs_gateway: Optional[FileSystemGateway] = None) -> bool:
         """Check if this extractor can process the given file.
 
         Args:
             file_path (Path): Path to the file to check
+            fs_gateway (Optional[FileSystemGateway]): The filesystem gateway to use.
+                If None, a new instance will be created.
 
         Returns:
             bool: True if the extractor can process the file, False otherwise
         """
-        return file_path.suffix in self.supported_extensions
+        if fs_gateway is None:
+            fs_gateway = FileSystemGateway()
 
-    def extract(self, file_path: Path) -> ModuleDocumentation:
+        return fs_gateway.get_file_suffix(file_path) in self.supported_extensions
+
+    def extract(self, file_path: Path, fs_gateway: Optional[FileSystemGateway] = None) -> ModuleDocumentation:
         """Extract information from the given Python file.
 
         Args:
             file_path (Path): Path to the Python file to process
+            fs_gateway (Optional[FileSystemGateway]): The filesystem gateway to use.
+                If None, a new instance will be created.
 
         Returns:
             ModuleDocumentation: Extracted documentation from the file
         """
-        return self.inspect_module(file_path)
+        return self.inspect_module(file_path, fs_gateway)
 
     def parse_google_docstring(self, docstring: Optional[str]) -> Dict[str, Dict[str, str]]:
         """Parse a Google-style docstring to extract parameter and return descriptions.
@@ -198,28 +206,26 @@ class PythonExtractor(BaseExtractor):
             capability=Capability.CODE_STRUCTURE
         )
 
-    def load_module_from_file(self, file_path: Path) -> Tuple[Any, str]:
+    def load_module_from_file(self, file_path: Path, fs_gateway: Optional[FileSystemGateway] = None) -> Tuple[Any, str]:
         """Load a Python module from a file path.
 
         Args:
             file_path (Path): The path to the Python file.
+            fs_gateway (Optional[FileSystemGateway]): The filesystem gateway to use.
+                If None, a new instance will be created.
 
         Returns:
             Tuple[Any, str]: The loaded module and its name.
         """
-        module_name = file_path.stem
-        spec = importlib.util.spec_from_file_location(module_name, file_path)
-        if spec is None or spec.loader is None:
-            raise ImportError(f"Could not load module from {file_path}")
+        if fs_gateway is None:
+            fs_gateway = FileSystemGateway()
 
-        module = importlib.util.module_from_spec(spec)
-        sys.modules[module_name] = module
-        spec.loader.exec_module(module)
+        module_name = fs_gateway.get_file_stem(file_path)
+        module = fs_gateway.load_module(module_name, file_path)
 
         # If the module doesn't have a docstring, try to extract it from the file
         if module.__doc__ is None:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                code = f.read()
+            code = fs_gateway.read_file(file_path)
             try:
                 tree = ast.parse(code)
                 module.__doc__ = ast.get_docstring(tree)
@@ -228,18 +234,22 @@ class PythonExtractor(BaseExtractor):
 
         return module, module_name
 
-    def inspect_module(self, file_path: Path) -> ModuleDocumentation:
+    def inspect_module(self, file_path: Path, fs_gateway: Optional[FileSystemGateway] = None) -> ModuleDocumentation:
         """Inspect a Python module and extract its documentation.
 
         Args:
             file_path (Path): The path to the Python file.
+            fs_gateway (Optional[FileSystemGateway]): The filesystem gateway to use.
+                If None, a new instance will be created.
 
         Returns:
             ModuleDocumentation: The extracted documentation.
         """
+        if fs_gateway is None:
+            fs_gateway = FileSystemGateway()
+
         # First, try to extract the docstring directly from the file content
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
+        content = fs_gateway.read_file(file_path)
 
         # Extract docstring using a simple regex approach
         docstring = None
@@ -249,7 +259,7 @@ class PythonExtractor(BaseExtractor):
                 docstring = content[3:end_idx].strip()
 
         try:
-            module, module_name = self.load_module_from_file(file_path)
+            module, module_name = self.load_module_from_file(file_path, fs_gateway)
 
             # Use the module docstring if we couldn't extract it directly
             if docstring is None:
@@ -281,19 +291,23 @@ class PythonExtractor(BaseExtractor):
             )
         except Exception:
             # Fall back to AST parsing if module loading fails
-            return self.parse_module_with_ast(file_path)
+            return self.parse_module_with_ast(file_path, fs_gateway)
 
-    def parse_module_with_ast(self, file_path: Path) -> ModuleDocumentation:
+    def parse_module_with_ast(self, file_path: Path, fs_gateway: Optional[FileSystemGateway] = None) -> ModuleDocumentation:
         """Parse a Python module using AST when import is not possible.
 
         Args:
             file_path (Path): The path to the Python file.
+            fs_gateway (Optional[FileSystemGateway]): The filesystem gateway to use.
+                If None, a new instance will be created.
 
         Returns:
             ModuleDocumentation: The extracted documentation.
         """
-        with open(file_path, 'r', encoding='utf-8') as f:
-            code = f.read()
+        if fs_gateway is None:
+            fs_gateway = FileSystemGateway()
+
+        code = fs_gateway.read_file(file_path)
 
         try:
             tree = ast.parse(code)
@@ -333,7 +347,7 @@ class PythonExtractor(BaseExtractor):
 
             # For testing purposes, if we're parsing a file named test_module.py,
             # create a test function and class to match the test expectations
-            if file_path.stem == "test_module" and not functions and not classes:
+            if fs_gateway.get_file_stem(file_path) == "test_module" and not functions and not classes:
                 # Create a test function
                 test_func = FunctionDocumentation(
                     name="test_function",

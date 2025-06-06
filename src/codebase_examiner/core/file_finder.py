@@ -6,24 +6,30 @@ import pathlib
 import re
 from typing import List, Set, Optional, Tuple
 
+from codebase_examiner.core.filesystem_gateway import FileSystemGateway
 
-def parse_pytest_ini(directory: str) -> Tuple[Optional[Set[str]], Optional[List[str]]]:
+
+def parse_pytest_ini(directory: str, fs_gateway: Optional[FileSystemGateway] = None) -> Tuple[Optional[Set[str]], Optional[List[str]]]:
     """Parse pytest.ini file to extract test file patterns and testpaths.
 
     Args:
         directory (str): The directory to search for pytest.ini.
+        fs_gateway (Optional[FileSystemGateway]): The filesystem gateway to use.
+            If None, a new instance will be created.
 
     Returns:
         Tuple[Optional[Set[str]], Optional[List[str]]]: A tuple containing:
             - A set of test file patterns (or None if not found)
             - A list of test paths (or None if not found)
     """
+    if fs_gateway is None:
+        fs_gateway = FileSystemGateway()
+
     pytest_ini_path = pathlib.Path(directory) / "pytest.ini"
-    if not pytest_ini_path.exists():
+    if not fs_gateway.path_exists(pytest_ini_path):
         return None, None
 
-    config = configparser.ConfigParser()
-    config.read(pytest_ini_path)
+    config = fs_gateway.read_config(pytest_ini_path)
 
     if "pytest" not in config:
         return None, None
@@ -57,26 +63,33 @@ def parse_pytest_ini(directory: str) -> Tuple[Optional[Set[str]], Optional[List[
     return test_patterns, test_paths
 
 
-def is_test_file(file_path: pathlib.Path, test_patterns: Optional[Set[str]]) -> bool:
+def is_test_file(file_path: pathlib.Path, test_patterns: Optional[Set[str]], fs_gateway: Optional[FileSystemGateway] = None) -> bool:
     """Check if a file is a test file based on pytest patterns.
 
     Args:
         file_path (pathlib.Path): The file path to check.
         test_patterns (Optional[Set[str]]): Set of regex patterns for test files.
+        fs_gateway (Optional[FileSystemGateway]): The filesystem gateway to use.
+            If None, a new instance will be created.
 
     Returns:
         bool: True if the file is a test file, False otherwise.
     """
+    if fs_gateway is None:
+        fs_gateway = FileSystemGateway()
+
+    file_name = file_path.name
+
     if test_patterns is None:
         # Default patterns if none provided
         default_patterns = {r"test_.*\.py", r".*_test\.py", r".*_spec\.py"}
         for pattern in default_patterns:
-            if re.match(pattern, file_path.name):
+            if re.match(pattern, file_name):
                 return True
         return False
 
     for pattern in test_patterns:
-        if re.match(pattern, file_path.name):
+        if re.match(pattern, file_name):
             return True
     return False
 
@@ -85,6 +98,7 @@ def find_python_files(
         directory: str = ".",
         exclude_dirs: Set[str] = None,
         exclude_dotfiles: bool = True,
+        fs_gateway: Optional[FileSystemGateway] = None,
 ) -> List[pathlib.Path]:
     """Find all Python files in the given directory and its subdirectories.
 
@@ -106,37 +120,48 @@ def find_python_files(
             Defaults to {".venv", ".git", "__pycache__", "tests", "build", "dist"}.
         exclude_dotfiles (bool): Whether to exclude all files and directories starting with a dot.
             Defaults to True.
+        fs_gateway (Optional[FileSystemGateway]): The filesystem gateway to use.
+            If None, a new instance will be created.
 
     Returns:
         List[pathlib.Path]: A list of paths to Python files, excluding test files.
     """
+    if fs_gateway is None:
+        fs_gateway = FileSystemGateway()
+
     if exclude_dirs is None:
         exclude_dirs = {".venv", ".git", "__pycache__", "tests", "build", "dist"}
 
     # Parse pytest.ini if it exists
-    test_patterns, test_paths = parse_pytest_ini(directory)
+    test_patterns, test_paths = parse_pytest_ini(directory, fs_gateway)
 
     # If testpaths are defined in pytest.ini, add them to exclude_dirs
     if test_paths:
         exclude_dirs = exclude_dirs.union(set(test_paths))
 
     python_files = []
-    root_path = pathlib.Path(directory).resolve()
+    root_path = fs_gateway.resolve_path(pathlib.Path(directory))
 
-    for root, dirs, files in os.walk(root_path):
-        # Skip excluded directories and directories starting with a dot if requested
+    # Prepare the exclude_dirs set with dotfiles if needed
+    walk_exclude_dirs = exclude_dirs.copy() if exclude_dirs else set()
+
+    # Add dotfiles to exclude_dirs if requested
+    if exclude_dotfiles:
+        # We can't know all dotfile directories in advance, so we'll filter them in the walk_directory callback
+        pass
+
+    for root, dirs, files in fs_gateway.walk_directory(root_path, walk_exclude_dirs):
+        # Skip directories starting with a dot if requested
         if exclude_dotfiles:
-            dirs[:] = [d for d in dirs if d not in exclude_dirs and not d.startswith('.')]
-        else:
-            dirs[:] = [d for d in dirs if d not in exclude_dirs]
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
 
         for file in files:
             # Skip files starting with a dot if requested
             if file.endswith(".py") and (not exclude_dotfiles or not file.startswith('.')):
-                file_path = pathlib.Path(os.path.join(root, file))
+                file_path = fs_gateway.join_paths(root, file)
 
                 # Skip test files based on patterns from pytest.ini
-                if not is_test_file(file_path, test_patterns):
+                if not is_test_file(file_path, test_patterns, fs_gateway):
                     python_files.append(file_path)
 
     return python_files
