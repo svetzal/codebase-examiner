@@ -55,8 +55,8 @@ The Codebase Examiner addresses this challenge by creating structured, informati
 
 4. **Deployment Options**
    - Command-line interface for direct use
-   - HTTP server for integration with web-based AI systems
-   - STDIO-based MCP server for integration with AI agent frameworks
+   - MCP over HTTP for integration with web-based AI systems
+   - MCP over STDIO for integration with AI agent frameworks
 
 ### User Experience
 
@@ -67,8 +67,8 @@ The Codebase Examiner addresses this challenge by creating structured, informati
    - Configurable output format and location
 
 2. **Server Interfaces**
-   - RESTful API for HTTP server
-   - JSON-based communication protocol for STDIO server
+   - RESTful API for MCP over HTTP
+   - JSON-based communication protocol for MCP over STDIO
    - Consistent response format across interfaces
 
 ### Performance Requirements

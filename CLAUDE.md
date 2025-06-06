@@ -11,7 +11,7 @@ Key features:
 - Extract documentation from modules, classes, and functions
 - Parse Google-style docstrings for parameter and return value documentation
 - Generate documentation in Markdown or JSON format
-- Run as a CLI tool, HTTP server, or STDIO-based MCP server
+- Run as a CLI tool, MCP over HTTP, or MCP over STDIO
 
 Users can install it with pipx to make "codebase-examiner" available as a command-line tool.
 

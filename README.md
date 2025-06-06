@@ -10,7 +10,7 @@ A command-line tool that examines Python codebases and generates comprehensive d
 - Extract documentation from modules, classes, and functions
 - Parse Google-style docstrings for parameter and return value documentation
 - Generate documentation in Markdown or JSON format
-- Run as an HTTP or STDIO-based server to retrieve documentation programmatically
+- Run as MCP over HTTP or MCP over STDIO to retrieve documentation programmatically
 
 ## Installation
 
@@ -70,9 +70,9 @@ Generate markdown with only specific sections (e.g., title and modules):
 codebase-examiner examine --section title --section modules
 ```
 
-### HTTP Server
+### MCP over HTTP
 
-Start the HTTP server:
+Start the MCP over HTTP server:
 
 ```bash
 codebase-examiner serve --port 8080
@@ -114,9 +114,9 @@ Response:
 ```
 
 
-### STDIO Server
+### MCP over STDIO
 
-Start the STDIO server:
+Start the MCP over STDIO server:
 
 ```bash
 codebase-examiner-stdio
@@ -160,7 +160,7 @@ Legacy command-based format is still supported for backward compatibility:
 
 ## API Endpoints
 
-When running as an HTTP server:
+When running as an MCP over HTTP server:
 
 - `/jsonrpc` - JSON-RPC 2.0 endpoint for all operations
 
@@ -185,8 +185,8 @@ pytest
   - `code_inspector.py` - Extracting documentation from code  
   - `doc_generator.py` - Generating documentation output  
 - `src/codebase_examiner/cli.py` - Command-line interface  
-- `src/codebase_examiner/mcp.py` - HTTP server implementation  
-- `src/codebase_examiner/mcp_stdio.py` - STDIO server implementation  
+- `src/codebase_examiner/mcp.py` - MCP over HTTP implementation
+- `src/codebase_examiner/mcp_stdio.py` - MCP over STDIO implementation
 - `tests/` - Test suite
 
 ### Architecture
@@ -223,8 +223,8 @@ C4Container
 
   System_Boundary(codebaseExaminer, "Codebase Examiner") {
     Container(cli, "CLI Runner", "Python/Typer", "Command-line interface for the Codebase Examiner")
-    Container(httpServer, "HTTP Server", "Python/FastAPI", "HTTP-based MCP server for remote access")
-    Container(stdioServer, "STDIO Server", "Python", "STDIO-based MCP server for direct integration")
+    Container(httpServer, "MCP over HTTP", "Python/FastAPI", "HTTP-based MCP server for remote access")
+    Container(stdioServer, "MCP over STDIO", "Python", "STDIO-based MCP server for direct integration")
     Container(rpcLayer, "RPC Layer", "Python", "Handles JSON-RPC requests and routes them to appropriate handlers")
     Container(examiner, "Examiner", "Python", "Core functionality for analyzing Python code and generating documentation")
   }
@@ -257,8 +257,8 @@ C4Component
   }
 
   Container_Boundary(transport, "Transport Layer") {
-    Component(httpServer, "HTTP Server", "Python/FastAPI", "Handles HTTP requests")
-    Component(stdioServer, "STDIO Server", "Python", "Handles STDIO communication")
+    Component(httpServer, "MCP over HTTP", "Python/FastAPI", "Handles HTTP requests")
+    Component(stdioServer, "MCP over STDIO", "Python", "Handles STDIO communication")
   }
 
   Container_Boundary(rpc, "RPC Layer") {
