@@ -15,7 +15,7 @@ Codebase Examiner addresses a critical challenge in AI-powered coding: the inabi
 - **Optimized Token Usage**: Consume less context window space with structured summaries
 - **Better Integration**: Understand how components interact within the system
 
-The tool can be used as a standalone CLI application or integrated with AI systems through MCP (Machine Communication Protocol) over HTTP or STDIO.
+The tool can be used as a standalone CLI application or integrated with AI systems through MCP (Model Context Protocol) over HTTP or STDIO.
 
 ### Key Features
 
