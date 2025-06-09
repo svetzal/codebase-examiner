@@ -1,6 +1,17 @@
 # Codebase Examiner
 
-A command-line tool that examines Python codebases and generates comprehensive documentation about modules, classes, and functions. It can be run as a standalone CLI tool or as an HTTP/STDIO MCP server to provide this service to GenAI agents.
+A powerful tool that analyzes Python codebases and generates comprehensive documentation about modules, classes, and functions. Designed to help both developers and AI agents understand large codebases despite context window limitations, it provides structured, information-dense summaries optimized for efficient navigation and comprehension.
+
+## Overview
+
+Codebase Examiner addresses a critical challenge in AI-powered coding: the inability of Large Language Models to process entire codebases due to context window limitations. By extracting essential structure and documentation from codebases and presenting it in an optimized format, the tool enables:
+
+- **Efficient Navigation**: Quickly locate relevant code sections
+- **Comprehensive Understanding**: Grasp system architecture and interdependencies
+- **Optimized Token Usage**: Consume less context window space with structured summaries
+- **Better Integration**: Understand how components interact within the system
+
+The tool can be used as a standalone CLI application or integrated with AI systems through MCP (Machine Communication Protocol) over HTTP or STDIO.
 
 ## Features
 
@@ -11,6 +22,16 @@ A command-line tool that examines Python codebases and generates comprehensive d
 - Parse Google-style docstrings for parameter and return value documentation
 - Generate documentation in Markdown or JSON format
 - Run as MCP over HTTP or MCP over STDIO to retrieve documentation programmatically
+
+## Modular Architecture
+
+Codebase Examiner has been redesigned with a modular, extensible architecture that includes:
+
+- **Pluggable Extractors**: Specialized components for different types of code analysis
+- **Extractor Registry**: Central system for managing and discovering extractors
+- **Capability-Based Design**: Extractors declare their capabilities (CODE_STRUCTURE, DOCUMENTATION, etc.)
+- **Unified Data Models**: Standardized structures for representing extracted information
+- **Flexible Output**: Multiple renderer options for different documentation formats
 
 ## Documentation
 
@@ -72,6 +93,24 @@ Generate markdown with only specific sections (e.g., title and modules):
 
 ```bash
 codebase-examiner examine --section title --section modules
+```
+
+Specify which extractors to use:
+
+```bash
+codebase-examiner examine --extractors python_extractor
+```
+
+Filter by capability type:
+
+```bash
+codebase-examiner examine --capabilities CODE_STRUCTURE --capabilities DOCUMENTATION
+```
+
+List available extractors:
+
+```bash
+codebase-examiner list-extractors
 ```
 
 ### MCP over HTTP
@@ -186,12 +225,49 @@ pytest
 
 - `src/codebase_examiner/core/` - Core functionality  
   - `file_finder.py` - Finding Python files  
-  - `code_inspector.py` - Extracting documentation from code  
-  - `doc_generator.py` - Generating documentation output  
+  - `code_inspector.py` - Orchestrating code analysis  
+  - `doc_generator.py` - Generating documentation output
+  - `registry.py` - Extractor registry system
+  - `models.py` - Data models for extracted information
+  - `extractors/` - Pluggable code extractors
+    - `base.py` - Base extractor interface
+    - `python_extractor.py` - Python-specific extraction
+  - `renderers/` - Output formatters
+    - `base.py` - Renderer interface
+    - `markdown_renderer.py` - Markdown output
+    - `json_renderer.py` - JSON output
+  - `section_generators.py` - Documentation section generators
 - `src/codebase_examiner/cli.py` - Command-line interface  
 - `src/codebase_examiner/mcp.py` - MCP over HTTP implementation
 - `src/codebase_examiner/mcp_stdio.py` - MCP over STDIO implementation
 - `tests/` - Test suite
+
+### Extending with Custom Extractors
+
+The modular architecture allows you to create custom extractors for specific analysis needs or additional programming languages. To create a custom extractor:
+
+1. **Create a new class** that inherits from `BaseExtractor`
+2. **Implement required methods**:
+   - `can_extract(file_path)`: Determine if the extractor can handle a given file
+   - `extract(file_path)`: Perform the extraction and return structured data
+   - `get_capabilities()`: Declare what types of analysis the extractor provides
+3. **Register your extractor** with the registry:
+
+```python
+from codebase_examiner.core.registry import ExtractorRegistry
+from my_custom_extractors import MyCustomExtractor
+
+# Register your extractor
+ExtractorRegistry.get_instance().register_extractor(MyCustomExtractor())
+```
+
+Extractors can provide various capabilities:
+- `CODE_STRUCTURE`: Classes, functions, modules
+- `DEPENDENCIES`: Import analysis, dependency graphs
+- `METRICS`: Lines of code, complexity, test coverage
+- `SECURITY`: Vulnerability scanning, code quality
+- `DOCUMENTATION`: Docstring analysis, comment extraction
+- `STYLE`: Code formatting, linting issues
 
 ### Architecture
 

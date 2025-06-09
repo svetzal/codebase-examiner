@@ -2,16 +2,7 @@
 
 ## Overview
 
-This document outlines the complete plan to transform the Codebase Examiner from a monolithic Python-focused tool into a modular, extensible system that supports multiple programming languages and analysis capabilities.
-
-## Current State
-
-The current system has a single `code_inspector.py` module that handles all Python code extraction using both runtime inspection and AST parsing. While functional, this approach has limitations:
-
-- **Language-specific**: Only supports Python
-- **Monolithic**: All extraction logic is in one place
-- **Inflexible**: Hard to add new types of analysis
-- **Fixed output**: Limited to predefined documentation formats
+This document outlines the remaining tasks to transform the Codebase Examiner from a monolithic Python-focused tool into a modular, extensible system that supports multiple programming languages and analysis capabilities.
 
 ## Target Architecture
 
@@ -25,128 +16,7 @@ The new modular architecture will provide:
 
 ## Implementation Plan
 
-### Phase 1: Core Architecture (Foundation)
-
-#### Task 1.1: Create BaseExtractor Interface
-- **File**: `src/codebase_examiner/core/extractors/base.py`
-- **Description**: Create abstract base class defining the extractor interface
-- **Details**:
-  - Abstract methods: `can_extract(file_path)`, `extract(file_path)`, `get_capabilities()`
-  - Properties: `name`, `version`, `supported_extensions`
-  - Base validation and error handling
-
-#### Task 1.2: Define Extractor Capabilities
-- **File**: `src/codebase_examiner/core/extractors/base.py`
-- **Description**: Create enum for different extraction types
-- **Details**:
-  - `CODE_STRUCTURE`: Classes, functions, modules
-  - `DEPENDENCIES`: Import analysis, dependency graphs
-  - `METRICS`: Lines of code, complexity, test coverage
-  - `SECURITY`: Vulnerability scanning, code quality
-  - `DOCUMENTATION`: Docstring analysis, comment extraction
-  - `STYLE`: Code formatting, linting issues
-
-#### Task 2.1: Create ExtractedData Models
-- **File**: `src/codebase_examiner/core/models.py`
-- **Description**: Define base data structures for extractor output
-- **Details**:
-  - `ExtractedData` base class with common metadata
-  - Polymorphic design to support different data types
-  - JSON serialization support
-
-#### Task 2.2: Move Documentation Models
-- **File**: `src/codebase_examiner/core/models.py`
-- **Description**: Relocate existing data models to centralized location
-- **Details**:
-  - Move `FunctionDocumentation`, `ClassDocumentation`, `ModuleDocumentation`
-  - Update imports across the codebase
-  - Inherit from `ExtractedData` base class
-
-#### Task 2.3: Create ExtractionResult Model
-- **File**: `src/codebase_examiner/core/models.py`
-- **Description**: Container for results from multiple extractors
-- **Details**:
-  - Metadata: timestamp, extractors used, file counts
-  - Data: list of `ExtractedData` objects
-  - Methods for filtering by capability type
-
-#### Task 3.1: Create Python Extractor File
-- **File**: `src/codebase_examiner/core/extractors/python_extractor.py`
-- **Description**: New file to house Python-specific extraction logic
-- **Details**:
-  - Implement `BaseExtractor` interface
-  - Support for `.py` files
-  - Capability: `CODE_STRUCTURE`
-
-#### Task 3.2: Move Python Logic to Extractor
-- **Description**: Refactor existing inspection functions into `PythonExtractor` class
-- **Details**:
-  - Move `inspect_module`, `inspect_function`, `inspect_class`
-  - Convert to instance methods
-  - Maintain existing functionality
-
-#### Task 3.3: Move AST Logic to Extractor
-- **Description**: Consolidate AST parsing within `PythonExtractor`
-- **Details**:
-  - Move `parse_module_with_ast`, `extract_function_info_from_ast`, `extract_class_info_from_ast`
-  - Integrate with runtime inspection as fallback
-  - Handle edge cases and error conditions
-
-#### Task 4.1: Create Extractor Registry
-- **File**: `src/codebase_examiner/core/registry.py`
-- **Description**: Central system for managing extractors
-- **Details**:
-  - Singleton pattern for global registry
-  - Thread-safe operations
-  - Plugin discovery mechanism
-
-#### Task 4.2: Implement Registry Methods
-- **Description**: Core registry functionality
-- **Details**:
-  - `register_extractor(extractor)`: Add new extractor
-  - `get_extractors_for_file(file_path)`: Find compatible extractors
-  - `get_extractors_by_capability(capability)`: Filter by analysis type
-  - `list_extractors()`: Get all registered extractors
-
-#### Task 4.3: Setup Default Registry
-- **Description**: Initialize registry with built-in extractors
-- **Details**:
-  - Register `PythonExtractor` by default
-  - Create factory functions for common configurations
-  - Environment-based configuration support
-
 ### Phase 2: Integration (Connecting Components)
-
-#### Task 5.1: Update inspect_codebase Function
-- **File**: `src/codebase_examiner/core/code_inspector.py`
-- **Description**: Modify main inspection function to use registry
-- **Details**:
-  - Iterate through files and find compatible extractors
-  - Coordinate extraction from multiple extractors per file
-  - Aggregate results into `ExtractionResult`
-
-#### Task 5.2: Create CodebaseInspector Class
-- **File**: `src/codebase_examiner/core/code_inspector.py`
-- **Description**: New class to orchestrate the inspection process
-- **Details**:
-  - Constructor accepts registry and configuration
-  - Methods: `inspect_directory()`, `inspect_files()`
-  - Progress reporting and error handling
-
-#### Task 5.3: Update Return Types
-- **Description**: Change function signatures throughout the codebase
-- **Details**:
-  - `inspect_codebase()` returns `ExtractionResult` instead of `List[ModuleDocumentation]`
-  - Update all callers to handle new return type
-  - Provide backward compatibility wrapper
-
-#### Task 6.1: Update Doc Generator Input
-- **File**: `src/codebase_examiner/core/doc_generator.py`
-- **Description**: Modify to accept `ExtractionResult`
-- **Details**:
-  - Update `generate_documentation()` signature
-  - Extract appropriate data based on output format
-  - Handle mixed data types from different extractors
 
 #### Task 6.2: Create Documentation Renderer Interface
 - **File**: `src/codebase_examiner/core/renderers/base.py`
