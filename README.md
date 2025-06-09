@@ -12,6 +12,10 @@ A command-line tool that examines Python codebases and generates comprehensive d
 - Generate documentation in Markdown or JSON format
 - Run as MCP over HTTP or MCP over STDIO to retrieve documentation programmatically
 
+## Documentation
+
+For comprehensive documentation, visit the [Codebase Examiner Documentation Site](http://vetzal.com/codebase-examiner/).
+
 ## Installation
 
 ### Using pipx (Recommended)
