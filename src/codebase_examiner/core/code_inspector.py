@@ -14,28 +14,7 @@ from codebase_examiner.core.models import (
     ExtractionResult,
 )
 from codebase_examiner.core.registry import get_registry
-
-
-# Deprecated functions - keeping for backward compatibility
-def parse_google_docstring(docstring: Optional[str]) -> Dict[str, Dict[str, str]]:
-    """Parse a Google-style docstring to extract parameter and return descriptions.
-
-    Args:
-        docstring (Optional[str]): The docstring to parse.
-
-    Returns:
-        Dict[str, Dict[str, str]]: A dictionary with 'params' and 'returns' keys.
-    """
-    warnings.warn(
-        "parse_google_docstring is deprecated and will be removed in a future version. "
-        "Use a PythonExtractor instance instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    from codebase_examiner.core.extractors.python_extractor import PythonExtractor
-
-    extractor = PythonExtractor()
-    return extractor.parse_google_docstring(docstring)
+from codebase_examiner.python import PythonExtractor, parse_google_docstring
 
 
 def get_signature_string(obj: Any) -> str:
@@ -53,7 +32,7 @@ def get_signature_string(obj: Any) -> str:
         DeprecationWarning,
         stacklevel=2,
     )
-    from codebase_examiner.core.extractors.python_extractor import PythonExtractor
+    # Use the imported PythonExtractor
 
     extractor = PythonExtractor()
     return extractor.get_signature_string(obj)
@@ -75,7 +54,7 @@ def inspect_function(func: Any, module_path: str) -> FunctionDocumentation:
         DeprecationWarning,
         stacklevel=2,
     )
-    from codebase_examiner.core.extractors.python_extractor import PythonExtractor
+    # Use the imported PythonExtractor
 
     extractor = PythonExtractor()
     return extractor.inspect_function(func, module_path)
@@ -97,7 +76,7 @@ def inspect_class(cls: Any, module_path: str) -> ClassDocumentation:
         DeprecationWarning,
         stacklevel=2,
     )
-    from codebase_examiner.core.extractors.python_extractor import PythonExtractor
+    # Use the imported PythonExtractor
 
     extractor = PythonExtractor()
     return extractor.inspect_class(cls, module_path)
@@ -118,7 +97,7 @@ def load_module_from_file(file_path: Path) -> Tuple[Any, str]:
         DeprecationWarning,
         stacklevel=2,
     )
-    from codebase_examiner.core.extractors.python_extractor import PythonExtractor
+    # Use the imported PythonExtractor
 
     extractor = PythonExtractor()
     return extractor.load_module_from_file(file_path)
@@ -139,7 +118,7 @@ def inspect_module(file_path: Path) -> ModuleDocumentation:
         DeprecationWarning,
         stacklevel=2,
     )
-    from codebase_examiner.core.extractors.python_extractor import PythonExtractor
+    # Use the imported PythonExtractor
 
     extractor = PythonExtractor()
     return extractor.inspect_module(file_path)
@@ -160,7 +139,7 @@ def parse_module_with_ast(file_path: Path) -> ModuleDocumentation:
         DeprecationWarning,
         stacklevel=2,
     )
-    from codebase_examiner.core.extractors.python_extractor import PythonExtractor
+    # Use the imported PythonExtractor
 
     extractor = PythonExtractor()
     return extractor.parse_module_with_ast(file_path)
@@ -184,7 +163,7 @@ def extract_function_info_from_ast(
         DeprecationWarning,
         stacklevel=2,
     )
-    from codebase_examiner.core.extractors.python_extractor import PythonExtractor
+    # Use the imported PythonExtractor
 
     extractor = PythonExtractor()
     return extractor.extract_function_info_from_ast(node, module_path)
@@ -208,7 +187,7 @@ def extract_class_info_from_ast(
         DeprecationWarning,
         stacklevel=2,
     )
-    from codebase_examiner.core.extractors.python_extractor import PythonExtractor
+    # Use the imported PythonExtractor
 
     extractor = PythonExtractor()
     return extractor.extract_class_info_from_ast(node, module_path)

@@ -126,22 +126,22 @@ def extract(self, file_path: Path, fs_gateway: Optional[FileSystemGateway] = Non
     """Extract information from the given JavaScript file."""
     if fs_gateway is None:
         fs_gateway = FileSystemGateway()
-    
+
     # Read the file content
     content = fs_gateway.read_file(file_path)
-    
+
     # Parse the JavaScript code (example using a hypothetical js_parser)
     import js_parser
     ast = js_parser.parse(content)
-    
+
     # Extract module information
     module_name = fs_gateway.get_file_stem(file_path)
     docstring = self._extract_module_docstring(ast)
-    
+
     # Extract functions and classes
     functions = self._extract_functions(ast, str(file_path))
     classes = self._extract_classes(ast, str(file_path))
-    
+
     # Create and return the ModuleDocumentation
     return ModuleDocumentation(
         name=module_name,
@@ -162,15 +162,15 @@ To make your extractor available to the system, you need to register it in the `
 def get_registry():
     """Get the default registry with all available extractors."""
     if not hasattr(get_registry, "_registry"):
-        from codebase_examiner.core.extractors.python_extractor import PythonExtractor
+        from codebase_examiner.python import PythonExtractor
         from codebase_examiner.core.extractors.javascript_extractor import JavaScriptExtractor
-        
+
         registry = ExtractorRegistry()
         registry.register(PythonExtractor())
         registry.register(JavaScriptExtractor())  # Register your new extractor
-        
+
         get_registry._registry = registry
-    
+
     return get_registry._registry
 ```
 
@@ -230,7 +230,7 @@ class TypeScriptExtractor(BaseExtractor):
         """Extract information from the given TypeScript file."""
         if fs_gateway is None:
             fs_gateway = FileSystemGateway()
-        
+
         # Use TypeScript Compiler API via a Node.js script to parse the file
         # This is just an example approach - you might use a Python TypeScript parser instead
         result = subprocess.run(
@@ -238,7 +238,7 @@ class TypeScriptExtractor(BaseExtractor):
             capture_output=True,
             text=True
         )
-        
+
         if result.returncode != 0:
             # Handle error
             return ModuleDocumentation(
@@ -250,14 +250,14 @@ class TypeScriptExtractor(BaseExtractor):
                 extractor_name=self.name,
                 capability=Capability.CODE_STRUCTURE
             )
-        
+
         # Parse the JSON output from the Node.js script
         parsed_data = json.loads(result.stdout)
-        
+
         # Extract module information
         module_name = parsed_data.get("name", file_path.stem)
         docstring = parsed_data.get("docstring")
-        
+
         # Extract functions
         functions = []
         for func_data in parsed_data.get("functions", []):
@@ -273,7 +273,7 @@ class TypeScriptExtractor(BaseExtractor):
                 extractor_name=self.name,
                 capability=Capability.CODE_STRUCTURE
             ))
-        
+
         # Extract classes
         classes = []
         for class_data in parsed_data.get("classes", []):
@@ -292,7 +292,7 @@ class TypeScriptExtractor(BaseExtractor):
                     extractor_name=self.name,
                     capability=Capability.CODE_STRUCTURE
                 ))
-            
+
             classes.append(ClassDocumentation(
                 name=class_data["name"],
                 docstring=class_data.get("docstring"),
@@ -302,7 +302,7 @@ class TypeScriptExtractor(BaseExtractor):
                 extractor_name=self.name,
                 capability=Capability.CODE_STRUCTURE
             ))
-        
+
         # Create and return the ModuleDocumentation
         return ModuleDocumentation(
             name=module_name,

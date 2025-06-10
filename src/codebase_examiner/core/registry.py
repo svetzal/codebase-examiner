@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from codebase_examiner.core.extractors.base import BaseExtractor, Capability
-from codebase_examiner.core.extractors.python_extractor import PythonExtractor
+from codebase_examiner.python import PythonExtractor
 
 
 class ExtractorRegistry:

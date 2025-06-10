@@ -5,7 +5,7 @@ from unittest.mock import Mock, MagicMock
 
 from codebase_examiner.core.code_inspector import CodebaseInspector
 from codebase_examiner.core.extractors.base import Capability
-from codebase_examiner.core.extractors.python_extractor import PythonExtractor
+from codebase_examiner.python import PythonExtractor
 from codebase_examiner.core.filesystem_gateway import FileSystemGateway
 from codebase_examiner.core.models import (
     ModuleDocumentation,
