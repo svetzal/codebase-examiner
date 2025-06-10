@@ -16,6 +16,7 @@ The tool can be used as a standalone CLI application or integrated with AI syste
 ## Features
 
 - Find all Python files in a project directory tree
+- Automatically detect and respect .gitignore patterns for file exclusion
 - Automatically detect and respect pytest.ini configuration for test file organization
 - Support different test layout strategies (separate tests directory or tests alongside implementation)
 - Extract documentation from modules, classes, and functions

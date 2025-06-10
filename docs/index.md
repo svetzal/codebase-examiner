@@ -20,6 +20,7 @@ The tool can be used as a standalone CLI application or integrated with AI syste
 ### Key Features
 
 - Find all Python files in a project directory tree (excluding .venv and other configurable directories)
+- Automatically detect and respect .gitignore patterns for file exclusion
 - Extract documentation from modules, classes, and functions
 - Parse Google-style docstrings for parameter and return value documentation
 - Generate documentation in Markdown or JSON format
@@ -81,6 +82,7 @@ Options:
 - `--output`, `-o`: Output file path (default: print to console)
 - `--exclude`, `-e`: Directories to exclude (default: .venv)
 - `--include-dotfiles`: Include files and directories starting with a dot
+- `--use-gitignore/--no-gitignore`: Use .gitignore file for exclusion patterns (default: use gitignore)
 - `--section`, `-s`: Sections to include in order (title, toc, modules)
 - `--extractors`: Specify which extractors to use (e.g., python_extractor)
 - `--capabilities`: Filter by capability type (e.g., CODE_STRUCTURE, DOCUMENTATION)

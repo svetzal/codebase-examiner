@@ -33,6 +33,7 @@ The Codebase Examiner addresses this challenge by creating structured, informati
 
 1. **Codebase Scanning**
    - Recursively identify all Python files in a project directory
+   - Automatically detect and respect .gitignore patterns for file exclusion
    - Exclude common non-source directories (.venv, __pycache__, etc.) by default
    - Allow customization of directories to exclude
    - Support for including or excluding dotfiles

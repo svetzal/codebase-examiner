@@ -8,6 +8,7 @@ Codebase Examiner is a command-line tool and MCP server that analyzes Python cod
 
 Key features:
 - Find all Python files in a project directory tree (excluding .venv and other configurable directories)
+- Automatically detect and respect .gitignore patterns for file exclusion
 - Extract documentation from modules, classes, and functions
 - Parse Google-style docstrings for parameter and return value documentation
 - Generate documentation in Markdown or JSON format

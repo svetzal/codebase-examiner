@@ -18,12 +18,14 @@ class CodebaseInspector:
             fs_gateway (Optional[FileSystemGateway]): The filesystem gateway to use.
                 If None, a new instance will be created.
         """
-        
+
     def inspect_directory(
             self,
             directory: str = ".",
             exclude_dirs: Set[str] = None,
-            exclude_dotfiles: bool = True
+            exclude_dotfiles: bool = True,
+            include_test_files: bool = False,
+            use_gitignore: bool = True
     ) -> ExtractionResult:
         """Inspect a directory and extract information from all relevant files.
 
@@ -31,11 +33,15 @@ class CodebaseInspector:
             directory (str): The directory to inspect. Defaults to the current directory.
             exclude_dirs (Set[str]): Set of directory names to exclude.
             exclude_dotfiles (bool): Whether to exclude dotfiles. Defaults to True.
+            include_test_files (bool): Whether to include test files in the analysis.
+                Defaults to False.
+            use_gitignore (bool): Whether to use .gitignore patterns for exclusion.
+                Defaults to True.
 
         Returns:
             ExtractionResult: The combined results from all extractors
         """
-        
+
     def inspect_files(self, files: List[Path]) -> ExtractionResult:
         """Inspect a list of files using appropriate extractors.
 
@@ -78,7 +84,7 @@ The `ExaminerTool` class is the main entry point for the MCP server interfaces.
 
 ```python
 class ExaminerTool(LLMTool):
-    def run(self, directory: str = ".", exclude_dirs: List[str] = None, format_type: str = "markdown", include_dotfiles: bool = False) -> Dict[str, Any]:
+    def run(self, directory: str = ".", exclude_dirs: List[str] = None, format_type: str = "markdown", include_dotfiles: bool = False, include_test_files: bool = False, use_gitignore: bool = True) -> Dict[str, Any]:
         """Examines a Python codebase and generates documentation.
 
         Parameters
@@ -86,11 +92,15 @@ class ExaminerTool(LLMTool):
         directory : str, optional
             The directory to examine, by default "."
         exclude_dirs : List[str], optional
-            Directories to exclude from examination, by default [".venv", ".git", "__pycache__", "tests", "build", "dist"]
+            Directories to exclude from examination (uses .gitignore patterns first if present, then falls back to these directories), by default [".venv", ".git", "__pycache__", "tests", "build", "dist"]
         format_type : str, optional
             The format of the generated documentation, by default "markdown"
         include_dotfiles : bool, optional
             Whether to include dotfiles in the examination, by default False
+        include_test_files : bool, optional
+            Whether to include test files in the documentation, by default False
+        use_gitignore : bool, optional
+            Whether to use .gitignore patterns for exclusion, by default True
 
         Returns
         -------
@@ -109,8 +119,26 @@ def find_python_files(
         exclude_dirs: Set[str] = None,
         exclude_dotfiles: bool = True,
         fs_gateway: Optional[FileSystemGateway] = None,
+        include_test_files: bool = False,
+        use_gitignore: bool = True,
 ) -> List[pathlib.Path]:
     """Find all Python files in the given directory and its subdirectories.
+
+    This function automatically detects and respects pytest.ini configuration to identify
+    test files based on the project's test organization strategy. It supports both:
+
+    1. Traditional test organization with a separate 'tests' directory
+    2. Tests alongside implementation files (e.g., module.py, module_test.py or module_spec.py)
+
+    If a pytest.ini file is found, it will use the 'python_files' patterns to identify test files
+    and the 'testpaths' to identify directories containing tests. If no pytest.ini is found,
+    it will use default patterns (test_*.py, *_test.py, *_spec.py) to identify test files.
+
+    By default, test files are excluded from the returned list to focus on implementation files.
+    Set include_test_files=True to include test files in the results.
+
+    If use_gitignore=True (the default), this function will also read the .gitignore file
+    (if present) and exclude files and directories that match the patterns in it.
 
     Args:
         directory (str): The root directory to search in. Defaults to current directory.
@@ -120,9 +148,13 @@ def find_python_files(
             Defaults to True.
         fs_gateway (Optional[FileSystemGateway]): The filesystem gateway to use.
             If None, a new instance will be created.
+        include_test_files (bool): Whether to include test files in the results.
+            Defaults to False.
+        use_gitignore (bool): Whether to use .gitignore patterns for exclusion.
+            Defaults to True.
 
     Returns:
-        List[pathlib.Path]: A list of paths to Python files, excluding test files.
+        List[pathlib.Path]: A list of paths to Python files, optionally excluding test files.
     """
 ```
 
@@ -302,14 +334,14 @@ Registry for managing extractors.
 class ExtractorRegistry:
     def __init__(self):
         """Initialize an empty registry."""
-        
+
     def register(self, extractor: BaseExtractor) -> None:
         """Register an extractor.
 
         Args:
             extractor (BaseExtractor): The extractor to register.
         """
-        
+
     def get_extractors_for_file(self, file_path: Path) -> List[BaseExtractor]:
         """Get all extractors that can process the given file.
 
@@ -354,6 +386,49 @@ class ModulesSection(SectionGenerator):
         """Generate the section content."""
 ```
 
+## GitignoreParser
+
+The `GitignoreParser` class is responsible for parsing .gitignore files and checking if paths match gitignore patterns.
+
+```python
+class GitignoreParser:
+    def __init__(self, fs_gateway=None):
+        """Initialize the GitignoreParser.
+
+        Args:
+            fs_gateway: The filesystem gateway to use for reading .gitignore files.
+                If None, the FileSystemGateway will be imported and instantiated.
+        """
+
+    def parse_gitignore(self, directory: pathlib.Path) -> List[str]:
+        """Parse .gitignore file in the given directory.
+
+        Args:
+            directory (pathlib.Path): The directory containing the .gitignore file.
+
+        Returns:
+            List[str]: A list of gitignore patterns.
+        """
+
+    def is_path_ignored(self, path: pathlib.Path, gitignore_patterns: List[str], 
+                        base_dir: pathlib.Path, is_directory: bool = None, 
+                        rel_path_str: str = None) -> bool:
+        """Check if a path should be ignored based on gitignore patterns.
+
+        Args:
+            path (pathlib.Path): The path to check.
+            gitignore_patterns (List[str]): List of gitignore patterns.
+            base_dir (pathlib.Path): The base directory for relative paths.
+            is_directory (bool, optional): Whether the path is a directory. If None,
+                the method will try to determine it using the filesystem gateway.
+            rel_path_str (str, optional): The relative path string to use for matching.
+                If None, it will be computed from path and base_dir.
+
+        Returns:
+            bool: True if the path should be ignored, False otherwise.
+        """
+```
+
 ## FileSystemGateway
 
 The `FileSystemGateway` provides an abstraction layer for file system operations.
@@ -362,28 +437,28 @@ The `FileSystemGateway` provides an abstraction layer for file system operations
 class FileSystemGateway:
     def path_exists(self, path: Path) -> bool:
         """Check if a path exists."""
-        
+
     def read_file(self, path: Path) -> str:
         """Read a file and return its contents as a string."""
-        
+
     def read_config(self, path: Path) -> configparser.ConfigParser:
         """Read a configuration file."""
-        
+
     def resolve_path(self, path: Path) -> Path:
         """Resolve a path to its absolute form."""
-        
+
     def join_paths(self, *paths) -> Path:
         """Join path components."""
-        
+
     def get_file_suffix(self, path: Path) -> str:
         """Get the file suffix (extension)."""
-        
+
     def get_file_stem(self, path: Path) -> str:
         """Get the file stem (name without extension)."""
-        
+
     def walk_directory(self, directory: Path, exclude_dirs: Set[str] = None) -> Iterator[Tuple[Path, List[str], List[str]]]:
         """Walk a directory tree, similar to os.walk."""
-        
+
     def load_module(self, module_name: str, file_path: Path) -> Any:
         """Load a Python module from a file path."""
 ```
@@ -445,7 +520,7 @@ The Codebase Examiner can be used as an MCP server, providing tools for LLMs to 
                     "items": {
                         "type": "string"
                     },
-                    "description": "Directories to exclude from examination. Default is ['.venv', '.git', '__pycache__', 'tests', 'build', 'dist']."
+                    "description": "Directories to exclude from examination (uses .gitignore patterns first if present, then falls back to these directories). Default is ['.venv', '.git', '__pycache__', 'tests', 'build', 'dist']."
                 },
                 "format_type": {
                     "type": "string",
@@ -455,6 +530,14 @@ The Codebase Examiner can be used as an MCP server, providing tools for LLMs to 
                 "include_dotfiles": {
                     "type": "boolean",
                     "description": "Whether to include dotfiles in the examination. Default is false."
+                },
+                "include_test_files": {
+                    "type": "boolean",
+                    "description": "Whether to include test files in the documentation. Default is false."
+                },
+                "use_gitignore": {
+                    "type": "boolean",
+                    "description": "Whether to use .gitignore patterns for exclusion. Default is true."
                 }
             },
             "required": []
@@ -478,7 +561,9 @@ inspector = CodebaseInspector()
 result = inspector.inspect_directory(
     directory="/path/to/project",
     exclude_dirs={".venv", "tests"},
-    exclude_dotfiles=True
+    exclude_dotfiles=True,
+    include_test_files=False,
+    use_gitignore=True  # This will respect .gitignore patterns in the project
 )
 
 # Generate markdown documentation
