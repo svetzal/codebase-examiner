@@ -1,10 +1,9 @@
 """Module for abstracting filesystem operations."""
 
+import configparser
 import os
 import pathlib
-import configparser
-import re
-from typing import List, Set, Optional, Tuple, Dict, Any
+from typing import List, Set, Tuple, Any
 
 
 class FileSystemGateway:
@@ -34,7 +33,7 @@ class FileSystemGateway:
         Returns:
             str: The contents of the file.
         """
-        with open(path, 'r', encoding='utf-8') as f:
+        with open(path, "r", encoding="utf-8") as f:
             return f.read()
 
     def write_file(self, path: pathlib.Path, content: str) -> None:
@@ -44,10 +43,12 @@ class FileSystemGateway:
             path (pathlib.Path): The path to the file.
             content (str): The content to write.
         """
-        with open(path, 'w', encoding='utf-8') as f:
+        with open(path, "w", encoding="utf-8") as f:
             f.write(content)
 
-    def walk_directory(self, directory: pathlib.Path, exclude_dirs: Set[str] = None) -> List[Tuple[str, List[str], List[str]]]:
+    def walk_directory(
+        self, directory: pathlib.Path, exclude_dirs: Set[str] = None
+    ) -> List[Tuple[str, List[str], List[str]]]:
         """Walk a directory recursively.
 
         Args:
@@ -149,4 +150,3 @@ class FileSystemGateway:
         spec.loader.exec_module(module)
 
         return module
-

@@ -2,13 +2,13 @@
 
 import os
 import pathlib
-import tempfile
-from typing import Set
 from unittest.mock import Mock, MagicMock
 
-import pytest
-
-from codebase_examiner.core.file_finder import find_python_files, parse_pytest_ini, is_test_file
+from codebase_examiner.core.file_finder import (
+    find_python_files,
+    parse_pytest_ini,
+    is_test_file,
+)
 from codebase_examiner.core.filesystem_gateway import FileSystemGateway
 
 
@@ -30,13 +30,25 @@ def create_mock_filesystem_gateway(root_path: pathlib.Path) -> FileSystemGateway
 
     # Mock directory structure for walk_directory
     walk_results = [
-        (str(root_path), ["subpkg", ".venv"], ["module1.py", "module2.py", "test_module.py", "module_test.py", "module_spec.py"]),
+        (
+            str(root_path),
+            ["subpkg", ".venv"],
+            [
+                "module1.py",
+                "module2.py",
+                "test_module.py",
+                "module_test.py",
+                "module_spec.py",
+            ],
+        ),
         (str(root_path / "subpkg"), [], ["__init__.py", "submodule.py"]),
         (str(root_path / ".venv"), [], ["env_module.py"]),
     ]
 
     # Setup mock methods
-    mock_fs.path_exists = lambda path: str(path) in files or str(path).rstrip("/") in [d[0] for d in walk_results]
+    mock_fs.path_exists = lambda path: str(path) in files or str(path).rstrip("/") in [
+        d[0] for d in walk_results
+    ]
     mock_fs.read_file = lambda path: files.get(str(path), "")
 
     # Mock walk_directory to handle exclude_dirs
@@ -67,7 +79,11 @@ def create_mock_filesystem_gateway(root_path: pathlib.Path) -> FileSystemGateway
     # Mock config for pytest.ini
     mock_config = MagicMock()
     mock_config.__contains__ = lambda self, key: key == "pytest"
-    mock_config.__getitem__ = lambda self, key: {"python_files": "test_*.py *_test.py *_spec.py", "testpaths": "tests"} if key == "pytest" else {}
+    mock_config.__getitem__ = lambda self, key: (
+        {"python_files": "test_*.py *_test.py *_spec.py", "testpaths": "tests"}
+        if key == "pytest"
+        else {}
+    )
     mock_fs.read_config = lambda path: mock_config
 
     return mock_fs
@@ -126,14 +142,20 @@ class DescribeFileFinder:
                 first_result = list(results[0])
                 first_result[1] = first_result[1] + ["custom_exclude"]
                 # Add a new result for the custom_exclude directory
-                custom_exclude_result = (str(root_path / "custom_exclude"), [], ["excluded_module.py"])
+                custom_exclude_result = (
+                    str(root_path / "custom_exclude"),
+                    [],
+                    ["excluded_module.py"],
+                )
                 return [tuple(first_result)] + results[1:] + [custom_exclude_result]
             return results
 
         mock_fs.walk_directory = updated_walk_directory
 
         # Run the function with custom excludes and the mock filesystem gateway
-        python_files = find_python_files(str(root_path), exclude_dirs={".venv", "custom_exclude"}, fs_gateway=mock_fs)
+        python_files = find_python_files(
+            str(root_path), exclude_dirs={".venv", "custom_exclude"}, fs_gateway=mock_fs
+        )
 
         # Get file names for easier assertions
         file_names = [path.name for path in python_files]
@@ -150,7 +172,9 @@ class DescribeFileFinder:
         assert "module_test.py" not in file_names
         assert "module_spec.py" not in file_names
         assert "env_module.py" not in file_names  # Should be excluded
-        assert "excluded_module.py" not in file_names  # Should be excluded by custom rule
+        assert (
+            "excluded_module.py" not in file_names
+        )  # Should be excluded by custom rule
 
     def it_should_identify_test_files(self):
         """Test identifying test files based on patterns."""
@@ -165,9 +189,18 @@ class DescribeFileFinder:
 
         # Test with custom patterns
         custom_patterns = {r"custom_.*\.py", r".*_custom\.py"}
-        assert is_test_file(pathlib.Path("custom_module.py"), custom_patterns, mock_fs) is True
-        assert is_test_file(pathlib.Path("module_custom.py"), custom_patterns, mock_fs) is True
-        assert is_test_file(pathlib.Path("test_module.py"), custom_patterns, mock_fs) is False
+        assert (
+            is_test_file(pathlib.Path("custom_module.py"), custom_patterns, mock_fs)
+            is True
+        )
+        assert (
+            is_test_file(pathlib.Path("module_custom.py"), custom_patterns, mock_fs)
+            is True
+        )
+        assert (
+            is_test_file(pathlib.Path("test_module.py"), custom_patterns, mock_fs)
+            is False
+        )
 
     def it_should_parse_pytest_ini(self):
         """Test parsing pytest.ini configuration."""
@@ -183,10 +216,14 @@ class DescribeFileFinder:
         # Mock read_config to return a config with pytest section
         mock_config = MagicMock()
         mock_config.__contains__ = lambda self, key: key == "pytest"
-        mock_config.__getitem__ = lambda self, key: {
-            "python_files": "test_*.py *_test.py *_spec.py custom_*.py",
-            "testpaths": "tests integration_tests"
-        } if key == "pytest" else {}
+        mock_config.__getitem__ = lambda self, key: (
+            {
+                "python_files": "test_*.py *_test.py *_spec.py custom_*.py",
+                "testpaths": "tests integration_tests",
+            }
+            if key == "pytest"
+            else {}
+        )
         mock_fs.read_config = lambda path: mock_config
 
         # Parse the pytest.ini file
@@ -234,14 +271,20 @@ class DescribeFileFinder:
                 # Still add the custom test files to the first result if it exists
                 if results:
                     first_result = list(results[0])
-                    first_result[2] = first_result[2] + ["custom_module.py", "module_custom.py"]
+                    first_result[2] = first_result[2] + [
+                        "custom_module.py",
+                        "module_custom.py",
+                    ]
                     return [tuple(first_result)] + results[1:]
                 return results
 
             # Add custom test files and tests directory if results exist
             if results:
                 first_result = list(results[0])
-                first_result[2] = first_result[2] + ["custom_module.py", "module_custom.py"]
+                first_result[2] = first_result[2] + [
+                    "custom_module.py",
+                    "module_custom.py",
+                ]
                 # Add tests directory to the first result's directories
                 first_result[1] = first_result[1] + ["tests"]
                 # Add a new result for the tests directory
@@ -254,10 +297,14 @@ class DescribeFileFinder:
         # Update mock_config to include custom test patterns
         mock_config = MagicMock()
         mock_config.__contains__ = lambda self, key: key == "pytest"
-        mock_config.__getitem__ = lambda self, key: {
-            "python_files": "test_*.py *_test.py *_spec.py custom_*.py *_custom.py",
-            "testpaths": "tests"
-        } if key == "pytest" else {}
+        mock_config.__getitem__ = lambda self, key: (
+            {
+                "python_files": "test_*.py *_test.py *_spec.py custom_*.py *_custom.py",
+                "testpaths": "tests",
+            }
+            if key == "pytest"
+            else {}
+        )
         mock_fs.read_config = lambda path: mock_config
 
         # Override is_test_file to properly identify custom test files
@@ -272,7 +319,8 @@ class DescribeFileFinder:
 
         # Patch the is_test_file function
         import codebase_examiner.core.file_finder
-        original_is_test_file_func = codebase_examiner.core.file_finder.is_test_file
+
+        _ = codebase_examiner.core.file_finder.is_test_file
         codebase_examiner.core.file_finder.is_test_file = mock_is_test_file
 
         # Run the function with the mock filesystem gateway

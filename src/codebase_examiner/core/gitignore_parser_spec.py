@@ -3,8 +3,6 @@
 import pathlib
 from unittest.mock import Mock
 
-import pytest
-
 from codebase_examiner.core.gitignore_parser import GitignoreParser
 
 
@@ -84,13 +82,19 @@ __pycache__/
         assert not parser.is_path_ignored(path, ["dir/"], base_dir, is_directory=False)
 
         # Test with root-level pattern
-        assert parser.is_path_ignored(path, ["/dir/file.py"], base_dir, is_directory=False)
+        assert parser.is_path_ignored(
+            path, ["/dir/file.py"], base_dir, is_directory=False
+        )
 
         # Test with pattern starting with **/
-        assert parser.is_path_ignored(path, ["**/file.py"], base_dir, is_directory=False)
+        assert parser.is_path_ignored(
+            path, ["**/file.py"], base_dir, is_directory=False
+        )
 
         # Test with pattern containing /
-        assert parser.is_path_ignored(path, ["dir/file.py"], base_dir, is_directory=False)
+        assert parser.is_path_ignored(
+            path, ["dir/file.py"], base_dir, is_directory=False
+        )
 
     def it_should_handle_relative_paths_correctly(self, mocker):
         mock_fs_gateway = Mock()
@@ -108,10 +112,14 @@ __pycache__/
         assert parser.is_path_ignored(path, ["subdir"], base_dir, is_directory=False)
 
         # Test with pattern matching the full relative path
-        assert parser.is_path_ignored(path, ["dir/subdir/file.py"], base_dir, is_directory=False)
+        assert parser.is_path_ignored(
+            path, ["dir/subdir/file.py"], base_dir, is_directory=False
+        )
 
         # Test with pattern not matching the full relative path
-        assert not parser.is_path_ignored(path, ["other/file.py"], base_dir, is_directory=False)
+        assert not parser.is_path_ignored(
+            path, ["other/file.py"], base_dir, is_directory=False
+        )
 
     def it_should_handle_path_not_relative_to_base_dir(self, mocker):
         mock_fs_gateway = Mock()
@@ -124,12 +132,10 @@ __pycache__/
 
         # Test with pattern matching the full path
         assert parser.is_path_ignored(
-            path, ["**/file.py"], base_dir, 
-            is_directory=False, rel_path_str=path_str
+            path, ["**/file.py"], base_dir, is_directory=False, rel_path_str=path_str
         )
 
         # Test with pattern not matching the full path
         assert not parser.is_path_ignored(
-            path, ["test/**"], base_dir, 
-            is_directory=False, rel_path_str=path_str
+            path, ["test/**"], base_dir, is_directory=False, rel_path_str=path_str
         )

@@ -1,12 +1,10 @@
 """Python code extractor implementation."""
 
 import ast
-import importlib.util
 import inspect
 import re
-import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, Optional, Set, Tuple
 
 from codebase_examiner.core.extractors.base import BaseExtractor, Capability
 from codebase_examiner.core.filesystem_gateway import FileSystemGateway
@@ -43,7 +41,9 @@ class PythonExtractor(BaseExtractor):
         """Return the set of capabilities supported by this extractor."""
         return {Capability.CODE_STRUCTURE}
 
-    def can_extract(self, file_path: Path, fs_gateway: Optional[FileSystemGateway] = None) -> bool:
+    def can_extract(
+        self, file_path: Path, fs_gateway: Optional[FileSystemGateway] = None
+    ) -> bool:
         """Check if this extractor can process the given file.
 
         Args:
@@ -59,7 +59,9 @@ class PythonExtractor(BaseExtractor):
 
         return fs_gateway.get_file_suffix(file_path) in self.supported_extensions
 
-    def extract(self, file_path: Path, fs_gateway: Optional[FileSystemGateway] = None) -> ModuleDocumentation:
+    def extract(
+        self, file_path: Path, fs_gateway: Optional[FileSystemGateway] = None
+    ) -> ModuleDocumentation:
         """Extract information from the given Python file.
 
         Args:
@@ -72,7 +74,9 @@ class PythonExtractor(BaseExtractor):
         """
         return self.inspect_module(file_path, fs_gateway)
 
-    def parse_google_docstring(self, docstring: Optional[str]) -> Dict[str, Dict[str, str]]:
+    def parse_google_docstring(
+        self, docstring: Optional[str]
+    ) -> Dict[str, Dict[str, str]]:
         """Parse a Google-style docstring to extract parameter and return descriptions.
 
         Args:
@@ -88,7 +92,9 @@ class PythonExtractor(BaseExtractor):
         result = {"params": {}, "returns": None}
 
         # Find the Args section
-        args_match = re.search(r'Args:(.*?)(?:Returns:|Raises:|$)', docstring, re.DOTALL)
+        args_match = re.search(
+            r"Args:(.*?)(?:Returns:|Raises:|$)", docstring, re.DOTALL
+        )
         if args_match:
             args_section = args_match.group(1).strip()
             # Parse each parameter. The original regex incorrectly captured the
@@ -96,7 +102,7 @@ class PythonExtractor(BaseExtractor):
             # documented. The corrected pattern looks for a new parameter
             # definition on a new line or the end of the section.
             param_matches = re.finditer(
-                r'(\w+)\s+\(([^)]+)\):\s+(.*?)(?=\n\s*\w+\s+\([^)]+\):|$)',
+                r"(\w+)\s+\(([^)]+)\):\s+(.*?)(?=\n\s*\w+\s+\([^)]+\):|$)",
                 args_section,
                 re.DOTALL,
             )
@@ -104,14 +110,19 @@ class PythonExtractor(BaseExtractor):
                 param_name = match.group(1)
                 param_type = match.group(2).strip()
                 param_desc = match.group(3).strip()
-                result["params"][param_name] = {"type": param_type, "description": param_desc}
+                result["params"][param_name] = {
+                    "type": param_type,
+                    "description": param_desc,
+                }
 
         # Find the Returns section
-        returns_match = re.search(r'Returns:(.*?)(?:Raises:|$)', docstring, re.DOTALL)
+        returns_match = re.search(r"Returns:(.*?)(?:Raises:|$)", docstring, re.DOTALL)
         if returns_match:
             returns_section = returns_match.group(1).strip()
             # Parse return type and description
-            return_match = re.search(r'([\w\[\],\s]+):\s+(.*)', returns_section, re.DOTALL)
+            return_match = re.search(
+                r"([\w\[\],\s]+):\s+(.*)", returns_section, re.DOTALL
+            )
             if return_match:
                 return_type = return_match.group(1).strip()
                 return_desc = return_match.group(2).strip()
@@ -155,14 +166,28 @@ class PythonExtractor(BaseExtractor):
         for name, param in sig.parameters.items():
             parameters[name] = {
                 "kind": str(param.kind),
-                "default": None if param.default is inspect.Parameter.empty else str(param.default),
-                "annotation": str(param.annotation) if param.annotation is not inspect.Parameter.empty else None,
-                "description": parsed_doc["params"].get(name, {}).get("description", None)
+                "default": (
+                    None
+                    if param.default is inspect.Parameter.empty
+                    else str(param.default)
+                ),
+                "annotation": (
+                    str(param.annotation)
+                    if param.annotation is not inspect.Parameter.empty
+                    else None
+                ),
+                "description": parsed_doc["params"]
+                .get(name, {})
+                .get("description", None),
             }
 
         # Extract return type
         return_annotation = sig.return_annotation
-        return_type = None if return_annotation is inspect.Parameter.empty else str(return_annotation)
+        return_type = (
+            None
+            if return_annotation is inspect.Parameter.empty
+            else str(return_annotation)
+        )
 
         return FunctionDocumentation(
             name=func.__name__,
@@ -174,7 +199,7 @@ class PythonExtractor(BaseExtractor):
             module_path=module_path,
             file_path=module_path,
             extractor_name=self.name,
-            capability=Capability.CODE_STRUCTURE
+            capability=Capability.CODE_STRUCTURE,
         )
 
     def inspect_class(self, cls: Any, module_path: str) -> ClassDocumentation:
@@ -193,7 +218,7 @@ class PythonExtractor(BaseExtractor):
         # Get all methods
         for name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
             # Skip private methods
-            if not name.startswith('_') or name == '__init__':
+            if not name.startswith("_") or name == "__init__":
                 methods.append(self.inspect_function(method, module_path))
 
         return ClassDocumentation(
@@ -203,10 +228,12 @@ class PythonExtractor(BaseExtractor):
             module_path=module_path,
             file_path=module_path,
             extractor_name=self.name,
-            capability=Capability.CODE_STRUCTURE
+            capability=Capability.CODE_STRUCTURE,
         )
 
-    def load_module_from_file(self, file_path: Path, fs_gateway: Optional[FileSystemGateway] = None) -> Tuple[Any, str]:
+    def load_module_from_file(
+        self, file_path: Path, fs_gateway: Optional[FileSystemGateway] = None
+    ) -> Tuple[Any, str]:
         """Load a Python module from a file path.
 
         Args:
@@ -234,7 +261,9 @@ class PythonExtractor(BaseExtractor):
 
         return module, module_name
 
-    def inspect_module(self, file_path: Path, fs_gateway: Optional[FileSystemGateway] = None) -> ModuleDocumentation:
+    def inspect_module(
+        self, file_path: Path, fs_gateway: Optional[FileSystemGateway] = None
+    ) -> ModuleDocumentation:
         """Inspect a Python module and extract its documentation.
 
         Args:
@@ -271,13 +300,13 @@ class PythonExtractor(BaseExtractor):
             # Get all functions
             for name, func in inspect.getmembers(module, predicate=inspect.isfunction):
                 # Skip imported functions
-                if func.__module__ == module_name and not name.startswith('_'):
+                if func.__module__ == module_name and not name.startswith("_"):
                     functions.append(self.inspect_function(func, str(file_path)))
 
             # Get all classes
             for name, cls in inspect.getmembers(module, predicate=inspect.isclass):
                 # Skip imported classes
-                if cls.__module__ == module_name and not name.startswith('_'):
+                if cls.__module__ == module_name and not name.startswith("_"):
                     classes.append(self.inspect_class(cls, str(file_path)))
 
             return ModuleDocumentation(
@@ -287,13 +316,15 @@ class PythonExtractor(BaseExtractor):
                 functions=functions,
                 classes=classes,
                 extractor_name=self.name,
-                capability=Capability.CODE_STRUCTURE
+                capability=Capability.CODE_STRUCTURE,
             )
         except Exception:
             # Fall back to AST parsing if module loading fails
             return self.parse_module_with_ast(file_path, fs_gateway)
 
-    def parse_module_with_ast(self, file_path: Path, fs_gateway: Optional[FileSystemGateway] = None) -> ModuleDocumentation:
+    def parse_module_with_ast(
+        self, file_path: Path, fs_gateway: Optional[FileSystemGateway] = None
+    ) -> ModuleDocumentation:
         """Parse a Python module using AST when import is not possible.
 
         Args:
@@ -319,10 +350,16 @@ class PythonExtractor(BaseExtractor):
             if module_docstring is None:
                 # Try to find a docstring at the beginning of the file
                 for node in tree.body:
-                    if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+                    if (
+                        isinstance(node, ast.Expr)
+                        and isinstance(node.value, ast.Constant)
+                        and isinstance(node.value.value, str)
+                    ):
                         module_docstring = node.value.value.strip()
                         break
-                    elif isinstance(node, ast.Expr) and isinstance(node.value, ast.Str):  # For Python < 3.8
+                    elif isinstance(node, ast.Expr) and isinstance(
+                        node.value, ast.Str
+                    ):  # For Python < 3.8
                         module_docstring = node.value.s.strip()
                         break
 
@@ -339,98 +376,109 @@ class PythonExtractor(BaseExtractor):
 
             for node in tree.body:
                 if isinstance(node, ast.FunctionDef):
-                    if not node.name.startswith('_'):
-                        functions.append(self.extract_function_info_from_ast(node, str(file_path)))
+                    if not node.name.startswith("_"):
+                        functions.append(
+                            self.extract_function_info_from_ast(node, str(file_path))
+                        )
                 elif isinstance(node, ast.ClassDef):
-                    if not node.name.startswith('_'):
-                        classes.append(self.extract_class_info_from_ast(node, str(file_path)))
+                    if not node.name.startswith("_"):
+                        classes.append(
+                            self.extract_class_info_from_ast(node, str(file_path))
+                        )
 
             # For testing purposes, if we're parsing a file named test_module.py,
             # create a test function and class to match the test expectations
-            if fs_gateway.get_file_stem(file_path) == "test_module" and not functions and not classes:
+            if (
+                fs_gateway.get_file_stem(file_path) == "test_module"
+                and not functions
+                and not classes
+            ):
                 # Create a test function
                 test_func = FunctionDocumentation(
                     name="test_function",
-                    docstring="Test function.\n    \n    Args:\n        param1 (int): The first parameter.\n"
-                              "        param2 (str): The second parameter. Defaults to \"default\".\n        \n"
-                              "    Returns:\n        bool: True if successful, False otherwise.",
-                    signature="(param1: int, param2: str = \"default\") -> bool",
+                    docstring="Test function.\n    \n    Args:\n        param1 (int): The first "
+                    "parameter.\n"
+                    "        param2 (str): The second parameter. Defaults to "
+                    '"default".\n        \n'
+                    "    Returns:\n        bool: True if successful, False otherwise.",
+                    signature='(param1: int, param2: str = "default") -> bool',
                     parameters={
                         "param1": {
                             "kind": "POSITIONAL_OR_KEYWORD",
                             "default": None,
                             "annotation": "<class 'int'>",
-                            "description": "The first parameter."
+                            "description": "The first parameter.",
                         },
                         "param2": {
                             "kind": "POSITIONAL_OR_KEYWORD",
                             "default": '"default"',
                             "annotation": "<class 'str'>",
-                            "description": "The second parameter. Defaults to \"default\"."
-                        }
+                            "description": 'The second parameter. Defaults to "default".',
+                        },
                     },
                     return_type="<class 'bool'>",
                     return_description="True if successful, False otherwise.",
                     module_path=str(file_path),
                     file_path=str(file_path),
                     extractor_name=self.name,
-                    capability=Capability.CODE_STRUCTURE
+                    capability=Capability.CODE_STRUCTURE,
                 )
                 functions.append(test_func)
 
                 # Create a test class with methods
                 init_method = FunctionDocumentation(
                     name="__init__",
-                    docstring="Initialize the TestClass.\n        \n        Args:\n            value (int): The initial value.",
+                    docstring="Initialize the TestClass.\n        \n        Args:\n            "
+                    "value (int): The initial value.",
                     signature="(self, value: int)",
                     parameters={
                         "self": {
                             "kind": "POSITIONAL_OR_KEYWORD",
                             "default": None,
                             "annotation": None,
-                            "description": None
+                            "description": None,
                         },
                         "value": {
                             "kind": "POSITIONAL_OR_KEYWORD",
                             "default": None,
                             "annotation": "<class 'int'>",
-                            "description": "The initial value."
-                        }
+                            "description": "The initial value.",
+                        },
                     },
                     return_type=None,
                     return_description=None,
                     module_path=str(file_path),
                     file_path=str(file_path),
                     extractor_name=self.name,
-                    capability=Capability.CODE_STRUCTURE
+                    capability=Capability.CODE_STRUCTURE,
                 )
 
                 test_method = FunctionDocumentation(
                     name="test_method",
                     docstring="Test method.\n        \n        Args:\n            "
-                              "factor (float): The factor to multiply by.\n            \n"
-                              "        Returns:\n            float: The result of the calculation.",
+                    "factor (float): The factor to multiply by.\n            \n"
+                    "        Returns:\n            float: The result of the calculation.",
                     signature="(self, factor: float) -> float",
                     parameters={
                         "self": {
                             "kind": "POSITIONAL_OR_KEYWORD",
                             "default": None,
                             "annotation": None,
-                            "description": None
+                            "description": None,
                         },
                         "factor": {
                             "kind": "POSITIONAL_OR_KEYWORD",
                             "default": None,
                             "annotation": "<class 'float'>",
-                            "description": "The factor to multiply by."
-                        }
+                            "description": "The factor to multiply by.",
+                        },
                     },
                     return_type="<class 'float'>",
                     return_description="The result of the calculation.",
                     module_path=str(file_path),
                     file_path=str(file_path),
                     extractor_name=self.name,
-                    capability=Capability.CODE_STRUCTURE
+                    capability=Capability.CODE_STRUCTURE,
                 )
 
                 test_class = ClassDocumentation(
@@ -440,7 +488,7 @@ class PythonExtractor(BaseExtractor):
                     module_path=str(file_path),
                     file_path=str(file_path),
                     extractor_name=self.name,
-                    capability=Capability.CODE_STRUCTURE
+                    capability=Capability.CODE_STRUCTURE,
                 )
                 classes.append(test_class)
 
@@ -451,7 +499,7 @@ class PythonExtractor(BaseExtractor):
                 functions=functions,
                 classes=classes,
                 extractor_name=self.name,
-                capability=Capability.CODE_STRUCTURE
+                capability=Capability.CODE_STRUCTURE,
             )
         except Exception:
             # Return an empty module documentation if parsing fails
@@ -462,10 +510,12 @@ class PythonExtractor(BaseExtractor):
                 functions=[],
                 classes=[],
                 extractor_name=self.name,
-                capability=Capability.CODE_STRUCTURE
+                capability=Capability.CODE_STRUCTURE,
             )
 
-    def extract_function_info_from_ast(self, node: ast.FunctionDef, module_path: str) -> FunctionDocumentation:
+    def extract_function_info_from_ast(
+        self, node: ast.FunctionDef, module_path: str
+    ) -> FunctionDocumentation:
         """Extract function information from an AST node.
 
         Args:
@@ -481,13 +531,19 @@ class PythonExtractor(BaseExtractor):
         parameters = {}
         for arg in node.args.args:
             param_name = arg.arg
-            annotation = arg.annotation.id if hasattr(arg, 'annotation') and arg.annotation is not None else None
+            annotation = (
+                arg.annotation.id
+                if hasattr(arg, "annotation") and arg.annotation is not None
+                else None
+            )
 
             parameters[param_name] = {
                 "kind": "POSITIONAL_OR_KEYWORD",
                 "default": None,
                 "annotation": annotation,
-                "description": parsed_doc["params"].get(param_name, {}).get("description", None)
+                "description": parsed_doc["params"]
+                .get(param_name, {})
+                .get("description", None),
             }
 
         # Extract return type
@@ -499,10 +555,13 @@ class PythonExtractor(BaseExtractor):
                 return_type = f"{node.returns.value.id}.{node.returns.attr}"
 
         # Build signature string
-        args_str = ", ".join([
-            param_name + (f": {params.get('annotation')}" if params.get('annotation') else "")
-            for param_name, params in parameters.items()
-        ])
+        args_str = ", ".join(
+            [
+                param_name
+                + (f": {params.get('annotation')}" if params.get("annotation") else "")
+                for param_name, params in parameters.items()
+            ]
+        )
         sig_str = f"({args_str})"
         if return_type:
             sig_str += f" -> {return_type}"
@@ -517,10 +576,12 @@ class PythonExtractor(BaseExtractor):
             module_path=module_path,
             file_path=module_path,
             extractor_name=self.name,
-            capability=Capability.CODE_STRUCTURE
+            capability=Capability.CODE_STRUCTURE,
         )
 
-    def extract_class_info_from_ast(self, node: ast.ClassDef, module_path: str) -> ClassDocumentation:
+    def extract_class_info_from_ast(
+        self, node: ast.ClassDef, module_path: str
+    ) -> ClassDocumentation:
         """Extract class information from an AST node.
 
         Args:
@@ -535,8 +596,10 @@ class PythonExtractor(BaseExtractor):
 
         for item in node.body:
             if isinstance(item, ast.FunctionDef):
-                if not item.name.startswith('_') or item.name == '__init__':
-                    methods.append(self.extract_function_info_from_ast(item, module_path))
+                if not item.name.startswith("_") or item.name == "__init__":
+                    methods.append(
+                        self.extract_function_info_from_ast(item, module_path)
+                    )
 
         return ClassDocumentation(
             name=node.name,
@@ -545,5 +608,5 @@ class PythonExtractor(BaseExtractor):
             module_path=module_path,
             file_path=module_path,
             extractor_name=self.name,
-            capability=Capability.CODE_STRUCTURE
+            capability=Capability.CODE_STRUCTURE,
         )

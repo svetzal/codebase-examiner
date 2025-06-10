@@ -3,23 +3,24 @@
 import abc
 import enum
 from pathlib import Path
-from typing import Any, List, Set
+from typing import Any, Set
 
 
 class Capability(enum.Enum):
     """Capabilities provided by extractors."""
+
     CODE_STRUCTURE = "code_structure"  # Classes, functions, modules
-    DEPENDENCIES = "dependencies"      # Import analysis, dependency graphs
-    METRICS = "metrics"               # Lines of code, complexity, coverage
-    SECURITY = "security"             # Vulnerability scanning, code quality
-    DOCUMENTATION = "documentation"   # Docstring analysis, comment extraction
-    STYLE = "style"                   # Code formatting, linting issues
+    DEPENDENCIES = "dependencies"  # Import analysis, dependency graphs
+    METRICS = "metrics"  # Lines of code, complexity, coverage
+    SECURITY = "security"  # Vulnerability scanning, code quality
+    DOCUMENTATION = "documentation"  # Docstring analysis, comment extraction
+    STYLE = "style"  # Code formatting, linting issues
 
 
 class BaseExtractor(abc.ABC):
     """Abstract base class defining the extractor interface.
-    
-    Extractors are responsible for analyzing files of specific types and 
+
+    Extractors are responsible for analyzing files of specific types and
     extracting structured information from them.
     """
 
@@ -49,10 +50,10 @@ class BaseExtractor(abc.ABC):
     @abc.abstractmethod
     def can_extract(self, file_path: Path) -> bool:
         """Check if this extractor can process the given file.
-        
+
         Args:
             file_path (Path): Path to the file to check
-            
+
         Returns:
             bool: True if the extractor can process the file, False otherwise
         """
@@ -61,10 +62,10 @@ class BaseExtractor(abc.ABC):
     @abc.abstractmethod
     def extract(self, file_path: Path) -> Any:
         """Extract information from the given file.
-        
+
         Args:
             file_path (Path): Path to the file to process
-            
+
         Returns:
             Any: Extracted data from the file
         """

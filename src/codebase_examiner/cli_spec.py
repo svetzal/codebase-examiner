@@ -9,7 +9,6 @@ import pytest
 from typer.testing import CliRunner
 
 from codebase_examiner.cli import app
-from codebase_examiner.core.code_inspector import ModuleDocumentation
 
 
 @pytest.fixture
@@ -27,20 +26,19 @@ def mock_inspector():
 
         # Create a mock module for the result
         from codebase_examiner.core.models import ExtractionResult, ModuleDocumentation
+
         module_doc = ModuleDocumentation(
             name="test_module",
             docstring="Test module docstring.",
             file_path="/path/to/module.py",
             extractor_name="python",
             functions=[],
-            classes=[]
+            classes=[],
         )
 
         # Create a mock ExtractionResult
         mock_result = ExtractionResult(
-            extractors_used=["python"],
-            file_count=1,
-            data=[module_doc]
+            extractors_used=["python"], file_count=1, data=[module_doc]
         )
 
         # Set up the mock instance to return our mock result
@@ -67,11 +65,11 @@ class DescribeCLI:
 
         # Check that the function was called with the right arguments
         mock_instance.inspect_directory.assert_called_once_with(
-            directory=".", 
+            directory=".",
             exclude_dirs={".venv", ".git"},
             exclude_dotfiles=True,
             include_test_files=False,
-            use_gitignore=True
+            use_gitignore=True,
         )
 
     def it_should_support_json_format(self, runner, mock_inspector):

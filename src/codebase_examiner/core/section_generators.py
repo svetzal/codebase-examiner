@@ -28,7 +28,7 @@ class TableOfContentsSection(SectionGenerator):
     def generate(self, modules: List[ModuleDocumentation]) -> str:
         toc = "## Table of Contents\n\n"
         for module in sorted(modules, key=lambda m: m.name):
-            anchor = module.name.lower().replace('.', '')
+            anchor = module.name.lower().replace(".", "")
             toc += f"- [Module: {module.name}](#{anchor})\n"
         toc += "\n"
         return toc
@@ -40,7 +40,7 @@ class ModulesSection(SectionGenerator):
     def generate(self, modules: List[ModuleDocumentation]) -> str:
         markdown = ""
         for module in sorted(modules, key=lambda m: m.name):
-            anchor = module.name.lower().replace('.', '')
+            anchor = module.name.lower().replace(".", "")
             markdown += f"## Module: {module.name} <a id='{anchor}'></a>\n\n"
             markdown += f"File: `{module.file_path}`\n\n"
 
@@ -59,12 +59,16 @@ class ModulesSection(SectionGenerator):
                     if func.parameters:
                         markdown += "**Parameters:**\n\n"
                         for param_name, param_info in func.parameters.items():
-                            param_type = param_info.get('annotation', '') or ''
-                            param_desc = param_info.get('description', '') or ''
-                            default = param_info.get('default')
+                            param_type = param_info.get("annotation", "") or ""
+                            param_desc = param_info.get("description", "") or ""
+                            default = param_info.get("default")
 
                             type_str = f" ({param_type})" if param_type else ""
-                            default_str = f", default: `{default}`" if default and default != 'None' else ""
+                            default_str = (
+                                f", default: `{default}`"
+                                if (default and default != "None")
+                                else ""
+                            )
 
                             markdown += f"- `{param_name}`{type_str}{default_str}: {param_desc}\n"
 
@@ -72,8 +76,10 @@ class ModulesSection(SectionGenerator):
 
                     if func.return_type or func.return_description:
                         markdown += "**Returns:**\n\n"
-                        return_type = f"({func.return_type})" if func.return_type else ""
-                        return_desc = func.return_description or ''
+                        return_type = (
+                            f"({func.return_type})" if func.return_type else ""
+                        )
+                        return_desc = func.return_description or ""
                         markdown += f"{return_type} {return_desc}\n\n"
 
             # Classes
@@ -97,24 +103,35 @@ class ModulesSection(SectionGenerator):
                             if method.parameters:
                                 markdown += "**Parameters:**\n\n"
                                 for param_name, param_info in method.parameters.items():
-                                    if param_name == 'self':
+                                    if param_name == "self":
                                         continue
 
-                                    param_type = param_info.get('annotation', '') or ''
-                                    param_desc = param_info.get('description', '') or ''
-                                    default = param_info.get('default')
+                                    param_type = param_info.get("annotation", "") or ""
+                                    param_desc = param_info.get("description", "") or ""
+                                    default = param_info.get("default")
 
                                     type_str = f" ({param_type})" if param_type else ""
-                                    default_str = f", default: `{default}`" if default and default != 'None' else ""
+                                    default_str = (
+                                        f", default: `{default}`"
+                                        if (default and default != "None")
+                                        else ""
+                                    )
 
-                                    markdown += f"- `{param_name}`{type_str}{default_str}: {param_desc}\n"
+                                    markdown += (
+                                        f"- `{param_name}`{type_str}{default_str}: "
+                                        f"{param_desc}\n"
+                                    )
 
                                 markdown += "\n"
 
                             if method.return_type or method.return_description:
                                 markdown += "**Returns:**\n\n"
-                                return_type = f"({method.return_type})" if method.return_type else ""
-                                return_desc = method.return_description or ''
+                                return_type = (
+                                    f"({method.return_type})"
+                                    if method.return_type
+                                    else ""
+                                )
+                                return_desc = method.return_description or ""
                                 markdown += f"{return_type} {return_desc}\n\n"
 
             markdown += "---\n\n"

@@ -10,7 +10,10 @@ from rich.console import Console
 from rich.markdown import Markdown
 
 from codebase_examiner.core.code_inspector import CodebaseInspector
-from codebase_examiner.core.doc_generator import generate_documentation, generate_markdown_documentation
+from codebase_examiner.core.doc_generator import (
+    generate_documentation,
+    generate_markdown_documentation,
+)
 from codebase_examiner.core.examiner_tool import ExaminerTool
 from codebase_examiner.core.section_generators import (
     TitleSection,
@@ -18,34 +21,54 @@ from codebase_examiner.core.section_generators import (
     ModulesSection,
 )
 
-app = typer.Typer(help="Codebase Examiner - A tool to analyze Python codebases and generate documentation")
+app = typer.Typer(
+    help="Codebase Examiner - A tool to analyze Python codebases and generate documentation"
+)
 console = Console()  # Use stdout for console output
 
 
 @app.command()
 def examine(
-        directory: str = typer.Option(".", "--directory", "-d", help="The directory to examine"),
-        output_format: str = typer.Option("markdown", "--format", "-f", help="Output format (markdown or json)"),
-        output_file: Optional[str] = typer.Option(None, "--output", "-o", help="Output file path"),
-        exclude: List[str] = typer.Option([".venv", ".git"], "--exclude", "-e", help="Directories to exclude (uses .gitignore patterns first if present, then falls back to these directories)"),
-        include_dotfiles: bool = typer.Option(False, "--include-dotfiles",
-                                              help="Include files and directories starting with a dot"),
-        include_test_files: bool = typer.Option(False, "--include-test-files",
-                                              help="Include test files in the documentation"),
-        sections: Optional[List[str]] = typer.Option(
-            None,
-            "--section",
-            "-s",
-            help="Sections to include in order (title, toc, modules)",
-        ),
-        use_gitignore: bool = typer.Option(
-            True,
-            "--use-gitignore/--no-gitignore",
-            help="Use .gitignore file for exclusion patterns",
-        ),
+    directory: str = typer.Option(
+        ".", "--directory", "-d", help="The directory to examine"
+    ),
+    output_format: str = typer.Option(
+        "markdown", "--format", "-f", help="Output format (markdown or json)"
+    ),
+    output_file: Optional[str] = typer.Option(
+        None, "--output", "-o", help="Output file path"
+    ),
+    exclude: List[str] = typer.Option(
+        [".venv", ".git"],
+        "--exclude",
+        "-e",
+        help="Directories to exclude (uses .gitignore patterns first if present, "
+        "then falls back to these directories)",
+    ),
+    include_dotfiles: bool = typer.Option(
+        False,
+        "--include-dotfiles",
+        help="Include files and directories starting with a dot",
+    ),
+    include_test_files: bool = typer.Option(
+        False, "--include-test-files", help="Include test files in the documentation"
+    ),
+    sections: Optional[List[str]] = typer.Option(
+        None,
+        "--section",
+        "-s",
+        help="Sections to include in order (title, toc, modules)",
+    ),
+    use_gitignore: bool = typer.Option(
+        True,
+        "--use-gitignore/--no-gitignore",
+        help="Use .gitignore file for exclusion patterns",
+    ),
 ):
     """Examine a Python codebase and generate documentation."""
-    console.print(f"[bold blue]Examining codebase in directory: {directory}[/bold blue]")
+    console.print(
+        f"[bold blue]Examining codebase in directory: {directory}[/bold blue]"
+    )
 
     # Convert exclude list to set
     exclude_dirs: Set[str] = set(exclude)
@@ -59,9 +82,12 @@ def examine(
             exclude_dirs=exclude_dirs,
             exclude_dotfiles=not include_dotfiles,
             include_test_files=include_test_files,
-            use_gitignore=use_gitignore
+            use_gitignore=use_gitignore,
         )
-        console.print(f"[green]Found {len(result.get_modules())} modules using {', '.join(result.extractors_used)} extractors[/green]")
+        console.print(
+            f"[green]Found {len(result.get_modules())} modules using "
+            f"{', '.join(result.extractors_used)} extractors[/green]"
+        )
 
         # Generate documentation
         console.print(f"[bold]Generating {output_format} documentation...[/bold]")
@@ -75,7 +101,9 @@ def examine(
             try:
                 gens = [available[name.lower()]() for name in sections]
             except KeyError as e:
-                console.print(f"[bold red]Error: Unknown section '{e.args[0]}'[/bold red]")
+                console.print(
+                    f"[bold red]Error: Unknown section '{e.args[0]}'[/bold red]"
+                )
                 raise
             documentation = generate_markdown_documentation(result, gens)
         else:
@@ -85,7 +113,9 @@ def examine(
         if output_file:
             output_path = Path(output_file)
             output_path.write_text(documentation)
-            console.print(f"[bold green]Documentation written to {output_file}[/bold green]")
+            console.print(
+                f"[bold green]Documentation written to {output_file}[/bold green]"
+            )
             # Also print the plain message for tests to find
             print(f"Documentation written to {output_file}")
         else:
@@ -109,18 +139,23 @@ def examine(
 
 @app.command()
 def serve(
-        port: int = typer.Option(8080, "--port", "-p", help="Port to run the MCP server on"),
+    port: int = typer.Option(
+        8080, "--port", "-p", help="Port to run the MCP server on"
+    ),
 ):
     """Run the Codebase Examiner as an MCP server over HTTP."""
 
     try:
         from mojentic_mcp.mcp_http import start_server
+
         console.print(f"[bold blue]Starting MCP server on port {port}...[/bold blue]")
         rpc_handler = JsonRpcHandler(tools=[ExaminerTool()])
         start_server(port, rpc_handler)
         return 0
     except ImportError:
-        console.print("[bold red]Error: MCP server dependencies not installed[/bold red]")
+        console.print(
+            "[bold red]Error: MCP server dependencies not installed[/bold red]"
+        )
         console.print("Try installing with: pip install codebase-examiner[mcp]")
         return 1
     except Exception as e:
@@ -134,14 +169,19 @@ def serve_stdio():
 
     try:
         from mojentic_mcp.mcp_stdio import start_server
+
         console.print("[bold blue]Starting STDIO MCP server...[/bold blue]")
         # This print must be the last console output before the server takes over stdout
-        console.print("[bold green]Server ready to receive commands on stdin[/bold green]")
+        console.print(
+            "[bold green]Server ready to receive commands on stdin[/bold green]"
+        )
         rpc_handler = JsonRpcHandler(tools=[ExaminerTool()])
         start_server(rpc_handler)
         return 0
     except ImportError:
-        console.print("[bold red]Error: MCP server dependencies not installed[/bold red]")
+        console.print(
+            "[bold red]Error: MCP server dependencies not installed[/bold red]"
+        )
         console.print("Try installing with: pip install codebase-examiner[mcp]")
         return 1
     except Exception as e:

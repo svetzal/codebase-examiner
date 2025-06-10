@@ -2,7 +2,7 @@
 
 import fnmatch
 import pathlib
-from typing import List, Optional
+from typing import List
 
 
 class GitignoreParser:
@@ -21,6 +21,7 @@ class GitignoreParser:
         """
         if fs_gateway is None:
             from codebase_examiner.core.filesystem_gateway import FileSystemGateway
+
             self._fs_gateway = FileSystemGateway()
         else:
             self._fs_gateway = fs_gateway
@@ -44,7 +45,7 @@ class GitignoreParser:
         for line in content.splitlines():
             # Skip empty lines and comments
             line = line.strip()
-            if not line or line.startswith('#'):
+            if not line or line.startswith("#"):
                 continue
 
             # Add the pattern
@@ -52,9 +53,14 @@ class GitignoreParser:
 
         return patterns
 
-    def is_path_ignored(self, path: pathlib.Path, gitignore_patterns: List[str], 
-                        base_dir: pathlib.Path, is_directory: bool = None, 
-                        rel_path_str: str = None) -> bool:
+    def is_path_ignored(
+        self,
+        path: pathlib.Path,
+        gitignore_patterns: List[str],
+        base_dir: pathlib.Path,
+        is_directory: bool = None,
+        rel_path_str: str = None,
+    ) -> bool:
         """Check if a path should be ignored based on gitignore patterns.
 
         Args:
@@ -76,20 +82,20 @@ class GitignoreParser:
         if rel_path_str is None:
             try:
                 rel_path = path.relative_to(base_dir)
-                rel_path_str = str(rel_path).replace('\\', '/')
+                rel_path_str = str(rel_path).replace("\\", "/")
             except ValueError:
                 # If path is not relative to base_dir, use the full path
-                rel_path_str = str(path).replace('\\', '/')
+                rel_path_str = str(path).replace("\\", "/")
 
         # Check if the path matches any pattern
         for pattern in gitignore_patterns:
             # Handle negation (patterns starting with !)
-            is_negation = pattern.startswith('!')
+            is_negation = pattern.startswith("!")
             if is_negation:
                 pattern = pattern[1:]
 
             # Handle directory-specific patterns (ending with /)
-            is_dir_only = pattern.endswith('/')
+            is_dir_only = pattern.endswith("/")
             if is_dir_only:
                 pattern = pattern[:-1]
                 # Check if the path is a directory
@@ -106,25 +112,27 @@ class GitignoreParser:
                     continue
 
             # Convert gitignore pattern to fnmatch pattern
-            if pattern.startswith('/'):
+            if pattern.startswith("/"):
                 # Patterns starting with / match only at the root level
                 pattern = pattern[1:]
                 if fnmatch.fnmatch(rel_path_str, pattern):
                     return not is_negation
-            elif pattern.startswith('**/'):
+            elif pattern.startswith("**/"):
                 # Patterns starting with **/ match in any directory
                 pattern = pattern[3:]
                 if fnmatch.fnmatch(rel_path_str, pattern) or any(
-                    fnmatch.fnmatch(part, pattern) for part in rel_path_str.split('/')):
+                    fnmatch.fnmatch(part, pattern) for part in rel_path_str.split("/")
+                ):
                     return not is_negation
-            elif '/' in pattern:
+            elif "/" in pattern:
                 # Patterns with / are treated as relative to the .gitignore location
                 if fnmatch.fnmatch(rel_path_str, pattern):
                     return not is_negation
             else:
                 # Patterns without / match files or directories in any location
                 if fnmatch.fnmatch(rel_path_str, pattern) or any(
-                    fnmatch.fnmatch(part, pattern) for part in rel_path_str.split('/')):
+                    fnmatch.fnmatch(part, pattern) for part in rel_path_str.split("/")
+                ):
                     return not is_negation
 
         return False
