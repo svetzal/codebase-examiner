@@ -7,6 +7,7 @@ import re
 from typing import List, Set, Optional, Tuple
 
 from codebase_examiner.core.filesystem_gateway import FileSystemGateway
+from codebase_examiner.core.gitignore_parser import GitignoreParser
 
 
 def parse_pytest_ini(directory: str, fs_gateway: Optional[FileSystemGateway] = None) -> Tuple[Optional[Set[str]], Optional[List[str]]]:
@@ -99,6 +100,8 @@ def find_python_files(
         exclude_dirs: Set[str] = None,
         exclude_dotfiles: bool = True,
         fs_gateway: Optional[FileSystemGateway] = None,
+        include_test_files: bool = False,
+        use_gitignore: bool = True,
 ) -> List[pathlib.Path]:
     """Find all Python files in the given directory and its subdirectories.
 
@@ -112,7 +115,16 @@ def find_python_files(
     and the 'testpaths' to identify directories containing tests. If no pytest.ini is found,
     it will use default patterns (test_*.py, *_test.py, *_spec.py) to identify test files.
 
-    Test files are excluded from the returned list to focus on implementation files.
+    By default, test files are excluded from the returned list to focus on implementation files.
+    Set include_test_files=True to include test files in the results.
+
+    If use_gitignore=True (the default), this function will also read the .gitignore file
+    (if present) and exclude files and directories that match the patterns in it.
+
+    This function also supports different project layouts:
+    1. Standard Python package structure with code directly in the root directory
+    2. Standard Python package structure with code in a 'src' directory
+    3. Other custom layouts
 
     Args:
         directory (str): The root directory to search in. Defaults to current directory.
@@ -122,9 +134,13 @@ def find_python_files(
             Defaults to True.
         fs_gateway (Optional[FileSystemGateway]): The filesystem gateway to use.
             If None, a new instance will be created.
+        include_test_files (bool): Whether to include test files in the results.
+            Defaults to False.
+        use_gitignore (bool): Whether to use .gitignore patterns for exclusion.
+            Defaults to True.
 
     Returns:
-        List[pathlib.Path]: A list of paths to Python files, excluding test files.
+        List[pathlib.Path]: A list of paths to Python files, optionally excluding test files.
     """
     if fs_gateway is None:
         fs_gateway = FileSystemGateway()
@@ -139,8 +155,29 @@ def find_python_files(
     if test_paths:
         exclude_dirs = exclude_dirs.union(set(test_paths))
 
+    # Parse .gitignore if requested
+    gitignore_patterns = []
+    gitignore_parser = None
+    if use_gitignore:
+        gitignore_parser = GitignoreParser(fs_gateway)
+        gitignore_patterns = gitignore_parser.parse_gitignore(pathlib.Path(directory))
+
     python_files = []
     root_path = fs_gateway.resolve_path(pathlib.Path(directory))
+
+    # Check if we're in the root directory of a project with a src directory
+    src_dir = root_path / "src"
+    if directory == "." and fs_gateway.path_exists(src_dir) and src_dir.is_dir():
+        # If we're in the root directory and there's a src directory, also search in the src directory
+        src_files = find_python_files(
+            directory=str(src_dir),
+            exclude_dirs=exclude_dirs,
+            exclude_dotfiles=exclude_dotfiles,
+            fs_gateway=fs_gateway,
+            include_test_files=include_test_files,
+            use_gitignore=use_gitignore
+        )
+        python_files.extend(src_files)
 
     # Prepare the exclude_dirs set with dotfiles if needed
     walk_exclude_dirs = exclude_dirs.copy() if exclude_dirs else set()
@@ -155,13 +192,25 @@ def find_python_files(
         if exclude_dotfiles:
             dirs[:] = [d for d in dirs if not d.startswith('.')]
 
+        # Skip directories that match gitignore patterns
+        if gitignore_patterns and gitignore_parser:
+            root_path_obj = pathlib.Path(root_path)
+            dirs[:] = [d for d in dirs if not gitignore_parser.is_path_ignored(
+                fs_gateway.join_paths(root, d), gitignore_patterns, root_path_obj, is_directory=True)]
+
         for file in files:
             # Skip files starting with a dot if requested
             if file.endswith(".py") and (not exclude_dotfiles or not file.startswith('.')):
                 file_path = fs_gateway.join_paths(root, file)
 
-                # Skip test files based on patterns from pytest.ini
-                if not is_test_file(file_path, test_patterns, fs_gateway):
+                # Skip files that match gitignore patterns
+                if gitignore_patterns and gitignore_parser and gitignore_parser.is_path_ignored(
+                    file_path, gitignore_patterns, root_path, is_directory=False
+                ):
+                    continue
+
+                # Skip test files based on patterns from pytest.ini, unless include_test_files is True
+                if include_test_files or not is_test_file(file_path, test_patterns, fs_gateway):
                     python_files.append(file_path)
 
     return python_files

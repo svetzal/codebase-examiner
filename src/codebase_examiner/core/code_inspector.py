@@ -218,7 +218,9 @@ class CodebaseInspector:
             self,
             directory: str = ".",
             exclude_dirs: Set[str] = None,
-            exclude_dotfiles: bool = True
+            exclude_dotfiles: bool = True,
+            include_test_files: bool = False,
+            use_gitignore: bool = True
     ) -> ExtractionResult:
         """Inspect a directory and extract information from all relevant files.
 
@@ -226,6 +228,8 @@ class CodebaseInspector:
             directory (str): The directory to inspect. Defaults to the current directory.
             exclude_dirs (Set[str]): Set of directory names to exclude.
             exclude_dotfiles (bool): Whether to exclude dotfiles. Defaults to True.
+            include_test_files (bool): Whether to include test files. Defaults to False.
+            use_gitignore (bool): Whether to use .gitignore patterns for exclusion. Defaults to True.
 
         Returns:
             ExtractionResult: The combined results from all extractors
@@ -233,7 +237,7 @@ class CodebaseInspector:
         from codebase_examiner.core.file_finder import find_python_files
 
         # For now, we only handle Python files
-        files = find_python_files(directory, exclude_dirs, exclude_dotfiles, self._fs_gateway)
+        files = find_python_files(directory, exclude_dirs, exclude_dotfiles, self._fs_gateway, include_test_files, use_gitignore)
         return self.inspect_files(files)
 
     def inspect_files(self, files: List[Path]) -> ExtractionResult:
@@ -276,7 +280,9 @@ def inspect_codebase(
         directory: str = ".",
         exclude_dirs: Set[str] = None,
         exclude_dotfiles: bool = True,
-        fs_gateway: Optional[FileSystemGateway] = None
+        fs_gateway: Optional[FileSystemGateway] = None,
+        include_test_files: bool = False,
+        use_gitignore: bool = True
 ) -> Union[List[ModuleDocumentation], ExtractionResult]:
     """Inspect a Python codebase and extract documentation.
 
@@ -290,12 +296,16 @@ def inspect_codebase(
             Defaults to True.
         fs_gateway (Optional[FileSystemGateway]): The filesystem gateway to use.
             If None, a new instance will be created.
+        include_test_files (bool): Whether to include test files in the analysis.
+            Defaults to False.
+        use_gitignore (bool): Whether to use .gitignore patterns for exclusion.
+            Defaults to True.
 
     Returns:
         List[ModuleDocumentation]: Documentation for all modules in the codebase.
     """
     inspector = CodebaseInspector(fs_gateway=fs_gateway)
-    result = inspector.inspect_directory(directory, exclude_dirs, exclude_dotfiles)
+    result = inspector.inspect_directory(directory, exclude_dirs, exclude_dotfiles, include_test_files, use_gitignore)
 
     # For backward compatibility, return a list of module documentation
     modules = result.get_modules()

@@ -27,14 +27,21 @@ def examine(
         directory: str = typer.Option(".", "--directory", "-d", help="The directory to examine"),
         output_format: str = typer.Option("markdown", "--format", "-f", help="Output format (markdown or json)"),
         output_file: Optional[str] = typer.Option(None, "--output", "-o", help="Output file path"),
-        exclude: List[str] = typer.Option([".venv"], "--exclude", "-e", help="Directories to exclude"),
+        exclude: List[str] = typer.Option([".venv", ".git"], "--exclude", "-e", help="Directories to exclude (uses .gitignore patterns first if present, then falls back to these directories)"),
         include_dotfiles: bool = typer.Option(False, "--include-dotfiles",
                                               help="Include files and directories starting with a dot"),
+        include_test_files: bool = typer.Option(False, "--include-test-files",
+                                              help="Include test files in the documentation"),
         sections: Optional[List[str]] = typer.Option(
             None,
             "--section",
             "-s",
             help="Sections to include in order (title, toc, modules)",
+        ),
+        use_gitignore: bool = typer.Option(
+            True,
+            "--use-gitignore/--no-gitignore",
+            help="Use .gitignore file for exclusion patterns",
         ),
 ):
     """Examine a Python codebase and generate documentation."""
@@ -50,7 +57,9 @@ def examine(
         result = inspector.inspect_directory(
             directory=directory,
             exclude_dirs=exclude_dirs,
-            exclude_dotfiles=not include_dotfiles
+            exclude_dotfiles=not include_dotfiles,
+            include_test_files=include_test_files,
+            use_gitignore=use_gitignore
         )
         console.print(f"[green]Found {len(result.get_modules())} modules using {', '.join(result.extractors_used)} extractors[/green]")
 

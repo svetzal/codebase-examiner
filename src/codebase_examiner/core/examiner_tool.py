@@ -11,7 +11,7 @@ from codebase_examiner.core.doc_generator import generate_documentation
 class ExaminerTool(LLMTool):
     """LLM Tool for examining a Python codebase and generating documentation."""
 
-    def run(self, directory: str = ".", exclude_dirs: List[str] = None, format_type: str = "markdown", include_dotfiles: bool = False) -> Dict[str, Any]:
+    def run(self, directory: str = ".", exclude_dirs: List[str] = None, format_type: str = "markdown", include_dotfiles: bool = False, include_test_files: bool = False, use_gitignore: bool = True) -> Dict[str, Any]:
         """
         Examines a Python codebase and generates documentation.
 
@@ -20,11 +20,15 @@ class ExaminerTool(LLMTool):
         directory : str, optional
             The directory to examine, by default "."
         exclude_dirs : List[str], optional
-            Directories to exclude from examination, by default [".venv", ".git", "__pycache__", "tests", "build", "dist"]
+            Directories to exclude from examination (uses .gitignore patterns first if present, then falls back to these directories), by default [".venv", ".git", "__pycache__", "tests", "build", "dist"]
         format_type : str, optional
             The format of the generated documentation, by default "markdown"
         include_dotfiles : bool, optional
             Whether to include dotfiles in the examination, by default False
+        include_test_files : bool, optional
+            Whether to include test files in the examination, by default False
+        use_gitignore : bool, optional
+            Whether to use .gitignore patterns for exclusion, by default True
 
         Returns
         -------
@@ -45,7 +49,9 @@ class ExaminerTool(LLMTool):
             result = inspector.inspect_directory(
                 directory=directory,
                 exclude_dirs=set(exclude_dirs),
-                exclude_dotfiles=not include_dotfiles
+                exclude_dotfiles=not include_dotfiles,
+                include_test_files=include_test_files,
+                use_gitignore=use_gitignore
             )
 
             # Generate documentation
@@ -82,7 +88,7 @@ class ExaminerTool(LLMTool):
                             "items": {
                                 "type": "string"
                             },
-                            "description": "Directories to exclude from examination. Default is ['.venv', '.git', '__pycache__', 'tests', 'build', 'dist']."
+                            "description": "Directories to exclude from examination (uses .gitignore patterns first if present, then falls back to these directories). Default is ['.venv', '.git', '__pycache__', 'tests', 'build', 'dist']."
                         },
                         "format_type": {
                             "type": "string",
@@ -92,6 +98,14 @@ class ExaminerTool(LLMTool):
                         "include_dotfiles": {
                             "type": "boolean",
                             "description": "Whether to include dotfiles in the examination. Default is false."
+                        },
+                        "include_test_files": {
+                            "type": "boolean",
+                            "description": "Whether to include test files in the examination. Default is false."
+                        },
+                        "use_gitignore": {
+                            "type": "boolean",
+                            "description": "Whether to use .gitignore patterns for exclusion. Default is true."
                         }
                     },
                     "required": []
