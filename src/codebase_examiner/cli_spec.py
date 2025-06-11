@@ -20,7 +20,7 @@ def runner():
 @pytest.fixture
 def mock_inspector():
     """Mock the CodebaseInspector class."""
-    with patch("codebase_examiner.cli.CodebaseInspector") as mock_class:
+    with patch("codebase_examiner.commands.examine.CodebaseInspector") as mock_class:
         mock_instance = MagicMock()
         mock_class.return_value = mock_instance
 

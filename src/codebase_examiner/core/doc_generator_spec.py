@@ -8,6 +8,7 @@ from codebase_examiner.core.doc_generator import (
     generate_markdown_documentation,
     generate_json_documentation,
     generate_documentation,
+    OutputFormat,
 )
 from codebase_examiner.core.extractors.base import Capability
 from codebase_examiner.core.models import (
@@ -181,11 +182,11 @@ class DescribeDocGenerator:
     def it_should_generate_documentation(self, test_modules):
         """Test the main generate_documentation function."""
         # Test markdown format
-        markdown = generate_documentation(test_modules, "markdown")
+        markdown = generate_documentation(test_modules, OutputFormat.MARKDOWN)
         assert "# Codebase Documentation" in markdown
 
         # Test JSON format
-        json_str = generate_documentation(test_modules, "json")
+        json_str = generate_documentation(test_modules, OutputFormat.JSON)
         json_data = json.loads(json_str)
         assert isinstance(json_data, list)
         assert len(json_data) == 1
@@ -211,12 +212,12 @@ class DescribeDocGenerator:
     def it_should_handle_extraction_result(self, test_extraction_result):
         """Test handling ExtractionResult objects."""
         # Test markdown format
-        markdown = generate_documentation(test_extraction_result, "markdown")
+        markdown = generate_documentation(test_extraction_result, OutputFormat.MARKDOWN)
         assert "# Codebase Documentation" in markdown
         assert "## Module: test_module" in markdown
 
         # Test JSON format
-        json_str = generate_documentation(test_extraction_result, "json")
+        json_str = generate_documentation(test_extraction_result, OutputFormat.JSON)
         json_data = json.loads(json_str)
         assert isinstance(json_data, list)
         assert len(json_data) == 1

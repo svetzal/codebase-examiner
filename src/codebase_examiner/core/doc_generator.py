@@ -16,6 +16,12 @@ from codebase_examiner.core.section_generators import (
 )
 
 
+class OutputFormat(str, enum.Enum):
+    """Enum for supported documentation output formats."""
+    MARKDOWN = "markdown"
+    JSON = "json"
+
+
 def get_default_markdown_sections() -> List[SectionGenerator]:
     """Return the default list of markdown section generators."""
     return [TitleSection(), TableOfContentsSection(), ModulesSection()]
@@ -86,7 +92,7 @@ def generate_json_documentation(
 
 def generate_documentation(
     modules_or_result: Union[List[ModuleDocumentation], ExtractionResult],
-    format: str = "markdown",
+    format: OutputFormat = OutputFormat.MARKDOWN,
 ) -> str:
     """Generate documentation in the specified format.
 
@@ -94,12 +100,13 @@ def generate_documentation(
         modules_or_result (Union[List[ModuleDocumentation], ExtractionResult]): List of module
         documentation objects
             or an ExtractionResult containing them.
-        format (str, optional): Output format - "markdown" or "json". Defaults to "markdown".
+        format (OutputFormat, optional): Output format - OutputFormat.MARKDOWN or 
+            OutputFormat.JSON. Defaults to OutputFormat.MARKDOWN.
 
     Returns:
         str: Generated documentation.
     """
-    if format.lower() == "json":
+    if format == OutputFormat.JSON:
         return generate_json_documentation(modules_or_result)
     else:
         return generate_markdown_documentation(modules_or_result)
